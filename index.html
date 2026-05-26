@@ -1108,7 +1108,7 @@ function queryCards(cards, params) {
 
         // Cột phân loại hàng: Nhỏ / Công Kênh / Nặng
         const typCI = cols.findIndex(c =>
-          ['loại hàng','cargo','type','loại','hang type','cat'].some(k=>c.includes(k)));
+          ['loại hàng','cargo','type','loại','hang type','cat','nhóm','nhom','phân vùng','phan vung','class','phân loại','phan loai'].some(k=>c.includes(k)));
 
         let totSl=0, sm=0, ck=0, hv=0;
         rows.forEach(r => {
@@ -1116,13 +1116,13 @@ function queryCards(cards, params) {
           totSl += v;
           if (typCI>=0) {
             const t = String(r[typCI]||'').toLowerCase();
-            if      (t.includes('nhỏ')||t.includes('nho')||t.includes('normal')||t.includes('small')) sm+=v;
-            else if (t.includes('công kênh')||t.includes('cong kenh')||t.includes('cồng')||t.includes('bulky')||t.includes('oversize')) ck+=v;
+            if      (t.includes('nhỏ')||t.includes('nho')||t.includes('normal')||t.includes('small')||t.includes('1.9t')||t.includes('500kg')) sm+=v;
+            else if (t.includes('công kênh')||t.includes('cong kenh')||t.includes('cồng')||t.includes('bulky')||t.includes('oversize')||t.includes('ck')) ck+=v;
             else if (t.includes('nặng')||t.includes('nang')||t.includes('heavy')||t.includes('freight')) hv+=v;
             else sm+=v;
           }
         });
-        console.log(`[MB] "${dc.card.name}": rows=${rows.length} totSl=${Math.round(totSl)} numCI=${numCI}(${cols[numCI]}) sm=${Math.round(sm)} ck=${Math.round(ck)} hv=${Math.round(hv)}`);
+        console.log(`[MB] "${dc.card.name}": rows=${rows.length} totSl=${Math.round(totSl)} numCI=${numCI}(${cols[numCI]}) typCI=${typCI}(${cols[typCI]}) sm=${Math.round(sm)} ck=${Math.round(ck)} hv=${Math.round(hv)}`);
         results.push({name:dc.card.name, totSl, sm, ck, hv, numRows:rows.length});
       } catch(e) { console.log('[MB] parse err:', dc.card.name, e.message); }
       done();
