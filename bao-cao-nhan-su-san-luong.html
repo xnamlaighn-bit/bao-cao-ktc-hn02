@@ -1333,6 +1333,11 @@ function renderFLTrendChart(vd) {
 // INIT
 // ═══════════════════════════════════════════════
 (function init() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get('token');
+  if (urlToken) {
+    localStorage.setItem('mb_session', urlToken);
+  }
   const saved = localStorage.getItem('mb_session');
 
   render();
