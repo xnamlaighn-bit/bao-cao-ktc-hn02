@@ -12,7 +12,7 @@ from urllib.error import HTTPError
 METABASE = 'https://data-bi.ghn.vn'
 PROXY    = '/mb-proxy'
 GS_PROXY = '/gs-proxy'
-PORT     = 8888
+PORT     = int(os.environ.get('PORT', 8888))
 
 class Handler(SimpleHTTPRequestHandler):
 
