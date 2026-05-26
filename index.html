@@ -1097,10 +1097,13 @@ function queryCards(cards, params) {
         if (!rows.length) { done(); return; }
         const cols = (qd?.data?.cols||[]).map(c=>(c.display_name||c.name||'').toLowerCase());
 
-        // Chọn cột metric: cột số có SUM LỚN NHẤT (tránh nhầm count vs volume)
-        const isDateCol = c => ['date','ngày','tháng','tuần','time','created','week','month'].some(k=>c.includes(k));
+        // Chọn cột metric: cột số có SUM LỚN NHẤT (tránh nhầm count vs volume), loại trừ cột mã/ID/index
+        const isExcludedCol = c => [
+          'date','ngày','tháng','tuần','time','created','week','month',
+          'id','code','mã','ma','vận đơn','van don','key','no','index','phone','sđt'
+        ].some(k=>c.includes(k));
         const numericInfo = cols.map((c,i) => ({i, c, sum: rows.reduce((s,r)=>s+(parseFloat(r[i])||0),0)}))
-          .filter(x => !isDateCol(x.c) && x.sum > 0);
+          .filter(x => !isExcludedCol(x.c) && x.sum > 0);
         numericInfo.sort((a,b) => b.sum - a.sum);
         const numCI = numericInfo.length > 0 ? numericInfo[0].i : -1;
 
@@ -1153,11 +1156,26 @@ function pickBestCard(results) {
   // 3. Xu hướng trend charts (fallback)
   const trendCards= valid.filter(r => (r.name||'').toLowerCase().includes('xu hướng'));
 
+  const hasSplitData = r => (r.sm > 0 || r.ck > 0 || r.hv > 0);
+
   let pool;
-  if      (kpiCards.length)   { pool = kpiCards.sort((a,b)=>b.totSl-a.totSl);   console.log('[MB] Chọn KPI cards');    }
-  else if (slCharts.length)   { pool = slCharts.sort((a,b)=>b.totSl-a.totSl);   console.log('[MB] Chọn sl charts');    }
-  else if (trendCards.length) { pool = trendCards.sort((a,b)=>b.totSl-a.totSl); console.log('[MB] Fallback xu hướng'); }
-  else                        { pool = valid.sort((a,b)=>b.totSl-a.totSl); }
+  // Ưu tiên cao nhất cho card có dữ liệu phân tách loại hàng
+  const splitPool = valid.filter(hasSplitData);
+  if (splitPool.length) {
+    pool = splitPool.sort((a,b)=>b.totSl-a.totSl);
+    console.log('[MB] Chọn card có phân loại hàng:', pool[0].name);
+  } else if (kpiCards.length) {
+    pool = kpiCards.sort((a,b)=>b.totSl-a.totSl);
+    console.log('[MB] Chọn KPI cards');
+  } else if (slCharts.length) {
+    pool = slCharts.sort((a,b)=>b.totSl-a.totSl);
+    console.log('[MB] Chọn sl charts');
+  } else if (trendCards.length) {
+    pool = trendCards.sort((a,b)=>b.totSl-a.totSl);
+    console.log('[MB] Fallback xu hướng');
+  } else {
+    pool = valid.sort((a,b)=>b.totSl-a.totSl);
+  }
 
   const best = pool[0];
   mbVol = {
