@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Mở từ http://localhost:8888 để đầy đủ tính năng Metabase -->
+  <title>Báo Cáo Vận Hành KTC HN02</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #07090f;
+      --bg2:      #0d1120;
+      --card:     #111827;
+      --border:   #1e293b;
+      --blue:     #3b82f6;
+      --cyan:     #06b6d4;
+      --green:    #10b981;
+      --orange:   #f59e0b;
+      --red:      #ef4444;
+      --purple:   #8b5cf6;
+      --pink:     #ec4899;
+      --t1:       #f1f5f9;
+      --t2:       #94a3b8;
+      --t3:       #475569;
+      --ca1:      #3b82f6;
+      --ca2:      #f59e0b;
+      --ca3:      #8b5cf6;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+
+    /* ── background glow ── */
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(ellipse 60% 40% at 15% 15%, rgba(59,130,246,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 85% 80%, rgba(139,92,246,.06) 0%, transparent 60%);
+    }
+
+    .wrap{max-width:1600px;margin:0 auto;padding:20px 24px;position:relative;z-index:1}
+
+    /* ── HEADER ── */
+    .hdr{display:flex;align-items:center;justify-content:space-between;
+      padding:18px 24px;background:rgba(17,24,39,.85);backdrop-filter:blur(16px);
+      border:1px solid var(--border);border-radius:16px;margin-bottom:16px}
+    .hdr-l{display:flex;align-items:center;gap:14px}
+    .logo{width:46px;height:46px;border-radius:12px;
+      background:linear-gradient(135deg,#ff6b35,#f7c831);
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;font-weight:900;color:#fff;
+      box-shadow:0 4px 20px rgba(255,107,53,.35)}
+    .hdr-title h1{font-size:20px;font-weight:800;letter-spacing:-.4px;
+      background:linear-gradient(90deg,#f1f5f9,#94a3b8);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hdr-title p{font-size:12px;color:var(--t2);margin-top:3px}
+    .hdr-r{display:flex;align-items:center;gap:16px}
+    .clock-box{text-align:right}
+    .clock-t{font-size:26px;font-weight:700;letter-spacing:2px;color:var(--cyan);
+      font-variant-numeric:tabular-nums;line-height:1}
+    .clock-d{font-size:12px;color:var(--t2);margin-top:4px}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;
+      border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+      transition:all .2s;border:none}
+    .btn-blue{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);color:var(--blue)}
+    .btn-blue:hover{background:rgba(59,130,246,.22);border-color:rgba(59,130,246,.6)}
+    .btn-green{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:var(--green)}
+    .btn-green:hover{background:rgba(16,185,129,.22)}
+    .btn-gray{background:rgba(71,85,105,.15);border:1px solid rgba(71,85,105,.35);color:var(--t2)}
+
+    /* ── STATUS BAR ── */
+    .sbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+      padding:12px 18px;background:rgba(17,24,39,.6);
+      border:1px solid var(--border);border-radius:12px;margin-bottom:20px}
+    .sbar-l{display:flex;align-items:center;gap:10px}
+    .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .dot.green{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+    .dot.orange{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+    .dot.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .gates{display:flex;gap:8px;flex-wrap:wrap}
+    .gate{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;
+      border-radius:20px;font-size:12px;font-weight:600;transition:all .3s}
+    .gate.off{background:rgba(71,85,105,.15);border:1px solid rgba(71,85,105,.3);color:var(--t3)}
+    .gate.on{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:var(--green)}
+
+    /* ── METABASE LOGIN MODAL ── */
+    .mb-panel{background:rgba(17,24,39,.95);border:1px solid var(--border);
+      border-radius:16px;padding:20px;margin-bottom:20px}
+    .mb-panel h3{font-size:14px;font-weight:700;color:var(--orange);margin-bottom:4px}
+    .mb-panel p{font-size:12px;color:var(--t2);margin-bottom:14px}
+    .mb-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+    .mb-field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:180px}
+    .mb-field label{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+    .mb-field input{background:rgba(255,255,255,.06);border:1px solid var(--border);
+      border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;font-family:inherit;
+      outline:none;transition:border .2s}
+    .mb-field input:focus{border-color:var(--blue)}
+    .mb-status{font-size:12px;margin-top:8px;padding:8px 12px;border-radius:8px}
+    .mb-status.ok{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+    .mb-status.err{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+    .mb-status.info{background:rgba(59,130,246,.08);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+
+    /* ── SECTION ── */
+    .sec{margin-bottom:22px}
+    .sec-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .sec-icon{width:34px;height:34px;border-radius:9px;
+      display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .sec-info .sec-title{font-size:17px;font-weight:700}
+    .sec-info .sec-sub{font-size:12px;color:var(--t2);margin-top:2px}
+    .sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+    .pending-tag{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;
+      background:rgba(71,85,105,.2);border:1px dashed rgba(71,85,105,.4);
+      color:var(--t3);white-space:nowrap}
+
+    /* ── GRID ── */
+    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:1100px){.g3{grid-template-columns:1fr 1fr}}
+    @media(max-width:700px){.g3,.g2{grid-template-columns:1fr}}
+
+    /* ── CARD ── */
+    .card{background:rgba(17,24,39,.85);backdrop-filter:blur(8px);
+      border:1px solid var(--border);border-radius:16px;padding:20px;
+      position:relative;overflow:hidden;transition:border .25s}
+    .card:hover{border-color:rgba(59,130,246,.25)}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0}
+    .card.c-green::before{background:linear-gradient(90deg,var(--green),transparent)}
+    .card.c-blue::before{background:linear-gradient(90deg,var(--blue),transparent)}
+    .card.c-orange::before{background:linear-gradient(90deg,var(--orange),transparent)}
+    .card.c-purple::before{background:linear-gradient(90deg,var(--purple),transparent)}
+    .card.c-cyan::before{background:linear-gradient(90deg,var(--cyan),transparent)}
+
+    .card-lbl{font-size:11px;font-weight:600;color:var(--t2);
+      text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;
+      display:flex;align-items:center;gap:8px}
+    .card-icon{width:22px;height:22px;border-radius:6px;
+      display:flex;align-items:center;justify-content:center;font-size:13px}
+
+    /* ── BIG NUMBERS ── */
+    .big{font-size:38px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+    .big.green{color:var(--green)} .big.blue{color:var(--blue)}
+    .big.orange{color:var(--orange)} .big.red{color:var(--red)}
+    .big.purple{color:var(--purple)} .big.cyan{color:var(--cyan)}
+    .sub{font-size:13px;color:var(--t2);margin-top:4px}
+
+    .kpi-row{display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap}
+    .kpi{flex:1;min-width:80px}
+    .kpi-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+    .kpi-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+
+    /* ── TABLE ── */
+    .tbl{width:100%;border-collapse:collapse;margin-top:10px}
+    .tbl th{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;
+      padding:7px 8px;text-align:left;border-bottom:1px solid var(--border)}
+    .tbl td{padding:9px 8px;font-size:13px;border-bottom:1px solid rgba(30,41,59,.4)}
+    .tbl tr:last-child td{border-bottom:none}
+    .tbl .ca-row td{font-weight:700;background:rgba(255,255,255,.02)}
+    .tbl .dept-row td:first-child{padding-left:20px;color:var(--t2)}
+    .v-ok{color:var(--green);font-weight:600}
+    .v-bad{color:var(--red);font-weight:600}
+    .v-warn{color:var(--orange);font-weight:600}
+
+    /* ── PROGRESS ── */
+    .prog{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-top:8px}
+    .prog-fill{height:100%;border-radius:3px;transition:width 1s ease}
+    .prog-fill.ok{background:linear-gradient(90deg,var(--green),var(--cyan))}
+    .prog-fill.warn{background:linear-gradient(90deg,var(--orange),#f97316)}
+    .prog-fill.bad{background:linear-gradient(90deg,var(--red),#dc2626)}
+
+    /* ── FL SLOT LIST ── */
+    .slot-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+    .slot-item{display:flex;align-items:center;justify-content:space-between;
+      padding:9px 12px;background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.05);border-radius:8px}
+    .slot-time{font-size:11px;color:var(--t2);font-weight:500;min-width:110px}
+    .slot-nums{display:flex;align-items:center;gap:10px}
+    .slot-yc{font-size:12px;color:var(--t3)}
+    .slot-tt{font-size:13px;font-weight:700}
+    .slot-rate{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px}
+    .slot-rate.ok{background:rgba(16,185,129,.15);color:var(--green)}
+    .slot-rate.warn{background:rgba(245,158,11,.15);color:var(--orange)}
+    .slot-rate.bad{background:rgba(239,68,68,.15);color:var(--red)}
+
+    /* ── SHIFT CARD ── */
+    .shift-card{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .shift-hdr{padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+    .shift-card.ca1 .shift-hdr{background:rgba(59,130,246,.1);border-bottom:1px solid rgba(59,130,246,.2)}
+    .shift-card.ca2 .shift-hdr{background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.2)}
+    .shift-card.ca3 .shift-hdr{background:rgba(139,92,246,.1);border-bottom:1px solid rgba(139,92,246,.2)}
+    .shift-lbl{font-size:15px;font-weight:700}
+    .shift-card.ca1 .shift-lbl{color:var(--ca1)}
+    .shift-card.ca2 .shift-lbl{color:var(--ca2)}
+    .shift-card.ca3 .shift-lbl{color:var(--ca3)}
+    .shift-body{padding:16px 18px;background:rgba(17,24,39,.8)}
+    .shift-nums{display:flex;align-items:baseline;gap:8px}
+    .shift-n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+    .ca1 .shift-n{color:var(--ca1)} .ca2 .shift-n{color:var(--ca2)} .ca3 .shift-n{color:var(--ca3)}
+    .shift-meta{font-size:12px;color:var(--t2)}
+
+    /* ── VOL CARD ── */
+    .vol-box{background:rgba(255,255,255,.04);border-radius:10px;padding:14px;margin-bottom:10px}
+    .vol-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .vol-val{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+    .vol-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .vol-type{padding:12px;border-radius:10px;text-align:center}
+    .vol-type.sm{background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2)}
+    .vol-type.bk{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)}
+    .vol-type-lbl{font-size:10px;color:var(--t2);text-transform:uppercase;margin-bottom:5px}
+    .vol-type-v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+    .vol-type.sm .vol-type-v{color:var(--cyan)} .vol-type.bk .vol-type-v{color:var(--orange)}
+
+    /* ── LOADING / EMPTY ── */
+    .loading{display:flex;flex-direction:column;align-items:center;
+      justify-content:center;padding:50px;gap:14px}
+    .spin{width:36px;height:36px;border:3px solid rgba(59,130,246,.2);
+      border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .empty{padding:18px;background:rgba(71,85,105,.1);
+      border:1px dashed rgba(71,85,105,.35);border-radius:10px;
+      color:var(--t3);font-size:13px;text-align:center}
+
+    /* ── DIVIDER ── */
+    .divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:6px 0 22px}
+
+    /* ── DATA SOURCE TAG ── */
+    .ds-tag{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t3);margin-top:12px}
+    .ds-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+    /* ── CA GROUP HEADER ── */
+    .ca-group-hdr{font-size:10px;font-weight:700;text-transform:uppercase;
+      letter-spacing:1px;margin-top:12px;margin-bottom:6px}
+
+    /* ── WARN NOTICE ── */
+    .notice{padding:10px 14px;border-radius:10px;font-size:12px;
+      display:flex;align-items:flex-start;gap:8px;margin-top:12px}
+    .notice.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--orange)}
+    .notice.info{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);color:var(--blue)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ══ HEADER ══ -->
+  <div class="hdr">
+    <div class="hdr-l">
+      <div class="logo">G</div>
+      <div class="hdr-title">
+        <h1>Báo Cáo Vận Hành · KTC HN02</h1>
+        <p>Nhân sự thực tế · FL đáp ứng · Sản lượng nhập kho</p>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <div class="clock-box">
+        <div class="clock-t" id="clock-t">--:--:--</div>
+        <div class="clock-d" id="clock-d">--/--/----</div>
+      </div>
+      <button class="btn btn-blue" id="refresh-btn" onclick="loadAll()">🔄 Làm mới</button>
+    </div>
+  </div>
+
+  <!-- ══ STATUS BAR ══ -->
+  <div class="sbar">
+    <div class="sbar-l">
+      <div class="dot green" id="st-dot"></div>
+      <span id="st-txt" style="font-size:12px;color:var(--t2)">Đang khởi tạo...</span>
+    </div>
+    <div class="gates">
+      <div class="gate off" id="g-ca1">🌅 Ca 1 · 18:00</div>
+      <div class="gate off" id="g-ca2">🌆 Ca 2 · 21:00</div>
+      <div class="gate off" id="g-ca3">🌙 Ca 3 · 23:30</div>
+    </div>
+  </div>
+
+  <!-- ══ METABASE LOGIN PANEL ══ -->
+  <div class="mb-panel" id="mb-panel">
+    <h3>🔑 Kết nối Metabase — Sản lượng nhập kho</h3>
+    <p>Ban đăng nhập bằng Google SSO — hãy lấy Session Token từ cookie sau khi đã đăng nhập. Token hợp lệ trong vài ngày đến vài tuần.</p>
+    <details style="margin-bottom:14px;cursor:pointer">
+      <summary style="font-size:12px;color:var(--blue);font-weight:600;list-style:none;display:flex;align-items:center;gap:6px">
+        ℹ️ Cách lấy Session Token trên MacBook (3 bước)
+      </summary>
+      <ol style="font-size:12px;color:var(--t2);margin-top:10px;padding-left:18px;line-height:2">
+        <li>Mở <a href="https://data-bi.ghn.vn" target="_blank" style="color:var(--blue)">data-bi.ghn.vn</a> trên Chrome → đăng nhập bằng Google</li>
+        <li>Nhấn <strong style="color:var(--t1)">⌘ Cmd + ⌥ Option + I</strong> để mở DevTools<br>
+          <span style="color:var(--t3)">(hoặc chuột phải vào trang → "Inspect" → "Inspect Element")</span></li>
+        <li>Trong DevTools: chọn tab <strong style="color:var(--t1)">Application</strong> → bên trái mở <strong style="color:var(--t1)">Cookies</strong> → click <code style="color:var(--cyan)">https://data-bi.ghn.vn</code></li>
+        <li>Tìm dòng <code style="color:var(--orange)">metabase.SESSION</code> → click vào ô <strong style="color:var(--t1)">Value</strong> → <strong style="color:var(--t1)">⌘+A</strong> rồi <strong style="color:var(--t1)">⌘+C</strong></li>
+      </ol>
+      <div style="font-size:11px;color:var(--t3);margin-top:6px;padding-left:18px">
+        💡 Token trông như: <code>5e3a1b2c-d4f5-6789-abcd-ef0123456789</code> (chuỗi UUID dài ~36 ký tự)
+      </div>
+    </details>
+    <div class="mb-row">
+      <div class="mb-field" style="flex:3">
+        <label>Metabase Session Token</label>
+        <input type="password" id="mb-token" placeholder="Dán token từ cookie metabase.SESSION vào đây...">
+      </div>
+      <button class="btn btn-green" id="mb-login-btn" onclick="mbLogin()" style="flex-shrink:0">Kết nối</button>
+      <button class="btn btn-gray" onclick="skipMb()" style="flex-shrink:0">Bỏ qua</button>
+    </div>
+    <div id="mb-status" style="display:none" class="mb-status"></div>
+  </div>
+
+  <!-- ══ MAIN CONTENT ══ -->
+  <div id="main">
+    <div class="loading"><div class="spin"></div><p style="color:var(--t2);font-size:13px">Đang tải dữ liệu...</p></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc/export?format=csv&gid=1878142111';
+const SHEET2 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=1455372314';
+const MB_HOST = 'https://data-bi.ghn.vn';
+const MB_DASHBOARD_ID = 143;
+// Google Sheets — allorigins.win relay (works even from file://)
+const GS_PROXY = 'https://api.allorigins.win/raw?url=';
+// Metabase — local proxy server (no CORS restriction)
+const MB_LOCAL  = '/mb-proxy';
+// Detect if running from file protocol
+const IS_FILE = location.protocol === 'file:';
+
+// Global state
+let mbSession = null;
+let mbVolData = null;
+let nvData = {};
+let flData = {};
+let mbSkipped = false;
+let autoRefreshTimer = null;
+
+// ═══════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════
+const DAYS = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clock-t').textContent =
+    [n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+  document.getElementById('clock-d').textContent =
+    `${DAYS[n.getDay()]}, ${pad(n.getDate())}/${pad(n.getMonth()+1)}/${n.getFullYear()}`;
+}
+setInterval(updateClock, 1000); updateClock();
+function pad(n){ return String(n).padStart(2,'0'); }
+
+// ═══════════════════════════════════════════════════════
+// TIME GATES
+// ═══════════════════════════════════════════════════════
+function getGates(now = new Date()) {
+  const m = now.getHours()*60 + now.getMinutes();
+  return { ca1: m >= 18*60, ca2: m >= 21*60, ca3: m >= 23*60+30 };
+}
+function renderGates(gates) {
+  const cfg = [
+    {id:'g-ca1', key:'ca1', label:'✅ Ca 1 đã cập nhật', off:'🌅 Ca 1 · 18:00'},
+    {id:'g-ca2', key:'ca2', label:'✅ Ca 2 đã cập nhật', off:'🌆 Ca 2 · 21:00'},
+    {id:'g-ca3', key:'ca3', label:'✅ Ca 3 đã cập nhật', off:'🌙 Ca 3 · 23:30'},
+  ];
+  cfg.forEach(c => {
+    const el = document.getElementById(c.id);
+    if (gates[c.key]) { el.className='gate on'; el.textContent=c.label; }
+    else { el.className='gate off'; el.textContent=c.off; }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// DATE UTILS
+// ═══════════════════════════════════════════════════════
+function dateKeys(date) {
+  const d=date.getDate(), m=date.getMonth()+1, y=date.getFullYear();
+  return {
+    s1: `${pad(m)}/${pad(d)}/${y}`,        // Sheet1: MM/DD/YYYY
+    s2: `${d}/${m}/${y}`,                   // Sheet2: D/M/YYYY
+    disp: `${pad(d)}/${pad(m)}/${y}`,       // Display: DD/MM/YYYY
+    iso: `${y}-${pad(m)}-${pad(d)}`,        // ISO for Metabase
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// CSV PARSER
+// ═══════════════════════════════════════════════════════
+function parseCSV(text) {
+  const rows = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const row = []; let inQ = false, cur = '';
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    row.push(cur.trim()); rows.push(row);
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════
+// PARSE SHEET 1 — NV PHÂN HÀNG
+// ═══════════════════════════════════════════════════════
+function parseSheet1(csv) {
+  const rows = parseCSV(csv).slice(1); // skip header
+  const out = {};
+  for (const r of rows) {
+    const date = r[0], ca = r[1], bp = r[2];
+    if (!date || !ca || !bp) continue;
+    const diLam = parseInt(r[3]) || 0;
+    const nghi  = parseInt(r[4]) || 0;
+    if (!out[date]) out[date] = {};
+    if (!out[date][ca]) out[date][ca] = { diLam:0, nghi:0, dept:{} };
+    out[date][ca].diLam += diLam;
+    out[date][ca].nghi  += nghi;
+    out[date][ca].dept[bp] = { diLam, nghi };
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════
+// PARSE SHEET 2 — FL
+// ═══════════════════════════════════════════════════════
+function getShift(slot) {
+  if (!slot) return 0;
+  const h = parseInt(slot.split(':')[0]); if (isNaN(h)) return 0;
+  if (h >= 6 && h <= 13) return 1;
+  if (h >= 14 && h <= 19) return 2;
+  return 3;
+}
+function parseSheet2(csv) {
+  const rows = parseCSV(csv).slice(2); // skip 2 header rows
+  const out = {};
+  for (const r of rows) {
+    const date = r[0]; if (!date) continue;
+    const slot  = r[1];
+    const yc    = parseInt(r[2])  || 0;   // kho requirement
+    const dk    = parseInt(r[19]) || 0;   // planned total
+    const tt    = parseInt(r[29]) || 0;   // actual total
+    const rate  = yc > 0 ? (tt/yc)*100 : 0;
+    if (!out[date]) out[date] = { summary:null, slots:[] };
+    if (!slot) {
+      out[date].summary = { yc, dk, tt, rate };
+    } else {
+      out[date].slots.push({ slot, yc, dk, tt, rate, shift: getShift(slot) });
+    }
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════
+// FORMAT HELPERS
+// ═══════════════════════════════════════════════════════
+const fmt = n => Number(n||0).toLocaleString('vi-VN');
+const fmtR = r => (r||0).toFixed(1) + '%';
+function rClass(r) { return r >= 90 ? 'ok' : r >= 70 ? 'warn' : 'bad'; }
+function rColor(r) { return r >= 90 ? 'var(--green)' : r >= 70 ? 'var(--orange)' : 'var(--red)'; }
+
+// ═══════════════════════════════════════════════════════
+// METABASE AUTH + DATA FETCH
+// ═══════════════════════════════════════════════════════
+async function mbLogin() {
+  const token = (document.getElementById('mb-token')?.value || '').trim();
+  if (!token) { showMbStatus('Vui lòng dán Session Token vào ô trên.', 'err'); return; }
+  if (token.length < 20) { showMbStatus('Token quá ngắn — kiểm tra lại (thường dài 32-36 ký tự).', 'err'); return; }
+
+  const btn = document.getElementById('mb-login-btn');
+  btn.textContent = '⏳ Đang kiểm tra...'; btn.disabled = true;
+  showMbStatus('Đang xác thực token với Metabase...', 'info');
+
+  // Verify token is valid by calling /api/user/current via local proxy
+  try {
+    const res = await fetch(`${MB_LOCAL}/api/user/current`, {
+      headers: { 'X-Metabase-Session': token },
+    });
+    if (res.status === 401) throw new Error('Token đã hết hạn hoặc không hợp lệ. Hãy lấy lại từ cookie.');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const user = await res.json();
+    mbSession = token;
+    sessionStorage.setItem('mb_session', mbSession);
+    const name = user.first_name || user.email || 'User';
+    showMbStatus(`✅ Xác thực thành công (${name})! Đang tải sản lượng...`, 'ok');
+    document.getElementById('mb-token').value = '';
+    await loadMbData();
+    if (nvData && Object.keys(nvData).length) renderAll();
+  } catch(e) {
+    showMbStatus(`❌ ${e.message}`, 'err');
+  }
+  btn.textContent = 'Kết nối'; btn.disabled = false;
+}
+
+function showMbStatus(msg, type) {
+  const el = document.getElementById('mb-status');
+  el.style.display = 'block'; el.className = `mb-status ${type}`; el.textContent = msg;
+}
+
+function skipMb() {
+  mbSkipped = true;
+  document.getElementById('mb-panel').style.display = 'none';
+  // Render ngay dù Sheets chưa xong
+  if (nvData && Object.keys(nvData).length) {
+    renderAll();
+  } else {
+    document.getElementById('main').innerHTML =
+      `<div class="empty" style="padding:40px;font-size:14px">
+        <div style="font-size:28px;margin-bottom:12px">⏳</div>
+        <div style="font-weight:600;margin-bottom:8px">Đang tải Google Sheets...</div>
+        <div style="color:var(--t3)">Trang sẽ tự động hiển thị khi dữ liệu về. Vui lòng đợi thêm.</div>
+      </div>`;
+    // Poll until sheets loaded
+    const poll = setInterval(() => {
+      if (nvData && Object.keys(nvData).length) {
+        clearInterval(poll);
+        renderAll();
+      }
+    }, 1000);
+  }
+}
+
+async function loadMbData() {
+  if (!mbSession) return;
+  const today = new Date(), yest = new Date(today); yest.setDate(today.getDate()-1);
+  const yestK = dateKeys(yest);
+  const mbApi  = IS_FILE ? MB_HOST : MB_LOCAL;
+
+  try {
+    // ── 1. Lấy dashboard info (parameters + cards) ──────────────
+    const res = await fetch(`${mbApi}/api/dashboard/${MB_DASHBOARD_ID}`, {
+      headers: { 'X-Metabase-Session': mbSession },
+    });
+    if (!res.ok) throw new Error(`Dashboard HTTP ${res.status}`);
+    const dash = await res.json();
+
+    // Log dashboard parameters để debug
+    const dashParams = dash.parameters || [];
+    console.log('[MB] Dashboard params:', dashParams.map(p =>
+      `[${p.id}] slug="${p.slug}" name="${p.name}" type="${p.type}"`));
+
+    // ── 2. Map parameter slugs → UUIDs ───────────────────────────
+    const findParam = (...keys) => dashParams.find(p =>
+      keys.some(k => (p.slug||'').toLowerCase().includes(k) ||
+                     (p.name||'').toLowerCase().includes(k)));
+
+    const pDate = findParam('ngày','ngay','date','day');
+    const pKho  = findParam('kho','warehouse','hub');
+    const pCa   = findParam('ca_lv','ca ','shift','level');
+    const pXN   = findParam('xuất','nhập','xu','nhap','direction','in_out','xuat');
+
+    console.log('[MB] Mapped params → date:', pDate?.id, 'kho:', pKho?.id,
+                'ca:', pCa?.id, 'xn:', pXN?.id);
+
+    // ── 3. Build query params (chỉ Nhập, kho HN02, ngày qua) ────
+    const qParams = [];
+    if (pDate) qParams.push({ type:'date/range', value:`${yestK.iso}~${yestK.iso}`, id: pDate.id });
+    if (pKho)  qParams.push({ type:'string/=', value:['Kho Trung Chuyển Hà Nội 02'], id: pKho.id });
+    if (pCa)   qParams.push({ type:'string/=', value:['Ca 1','Ca 2','Ca 3'],          id: pCa.id });
+    if (pXN)   qParams.push({ type:'string/=', value:['Nhập'],                        id: pXN.id });
+
+    // ── 4. Query song song (parallel) — tối đa 4 card, timeout 8s ───
+    const allCards = (dash.dashcards || dash.ordered_cards || []).filter(c => c.card);
+    console.log('[MB] Cards:', allCards.map(c => `[dc=${c.id}/c=${c.card_id}] ${c.card.name}`));
+
+    // Ưu tiên card có tên liên quan trước, sau đó lấy tối đa 4
+    const prioritized = [
+      ...allCards.filter(c => {
+        const nm = (c.card.name||'').toLowerCase();
+        return nm.includes('sản lượng') || nm.includes('số đơn') ||
+               nm.includes('tổng') || nm.includes('nhập') || nm.includes('xuất nhập');
+      }),
+      ...allCards.filter(c => {
+        const nm = (c.card.name||'').toLowerCase();
+        return !nm.includes('sản lượng') && !nm.includes('số đơn') &&
+               !nm.includes('tổng') && !nm.includes('nhập') && !nm.includes('xuất nhập');
+      }),
+    ].slice(0, 4);
+
+    const processCard = async (dc) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000); // 8s timeout
+      try {
+        const qr = await fetch(
+          `${mbApi}/api/dashboard/${MB_DASHBOARD_ID}/dashcard/${dc.id}/card/${dc.card_id}/query`,
+          { method:'POST', signal: ctrl.signal,
+            headers:{'Content-Type':'application/json','X-Metabase-Session':mbSession},
+            body: JSON.stringify({ parameters: qParams }) }
+        );
+        clearTimeout(timer);
+        const qd = await qr.json();
+        const rows = qd?.data?.rows || [];
+        const cols = (qd?.data?.cols||[]).map(c => (c.display_name||c.name||'').toLowerCase());
+        const numSum = rows.reduce((s,r) =>
+          s + r.reduce((rs,v) => rs + (isNaN(parseFloat(v)) ? 0 : parseFloat(v)), 0), 0);
+        const numColIdx = cols.findIndex((c,i) =>
+          rows.some(r => !isNaN(parseFloat(r[i])) && parseFloat(r[i]) > 0));
+        const typeColIdx = cols.findIndex(c =>
+          ['loại','type','hang','hàng','kind'].some(k => c.includes(k)));
+        let smTotal = 0, bkTotal = 0, totSl = 0;
+        rows.forEach(r => {
+          const val = parseFloat(r[numColIdx < 0 ? 0 : numColIdx]) || 0;
+          totSl += val;
+          if (typeColIdx >= 0) {
+            const t = (r[typeColIdx]||'').toLowerCase();
+            if (t.includes('normal') || t.includes('nhỏ') || t.includes('nho')) smTotal += val;
+            else if (t.includes('bulky') || t.includes('freight') ||
+                     t.includes('nặng') || t.includes('cồng') || t.includes('heavy')) bkTotal += val;
+            else smTotal += val;
+          }
+        });
+        console.log(`[MB] ✓ "${dc.card.name}": rows=${rows.length} sum=${numSum} totSl=${totSl} cols=`, cols);
+        return { dc, rows, cols, numSum, totSl, smTotal, bkTotal };
+      } catch(e) {
+        clearTimeout(timer);
+        console.log(`[MB] ✗ "${dc.card?.name}": ${e.message}`);
+        return null;
+      }
+    };
+
+    const settled = await Promise.allSettled(prioritized.map(processCard));
+    const results = settled
+      .filter(r => r.status === 'fulfilled' && r.value)
+      .map(r => r.value);
+
+
+    // ── 5. Chọn card tốt nhất ────────────────────────────────────
+    // Ưu tiên: card tên chứa "sản lượng" / "số đơn" > card có numSum lớn nhất
+    const scored = results.filter(r => r.numSum > 0)
+      .sort((a,b) => {
+        const nameScore = n => {
+          const nm = (n.dc.card.name||'').toLowerCase();
+          if (nm.includes('sản lượng') || nm.includes('số đơn') || nm.includes('tổng'))
+            return 1000;
+          return 0;
+        };
+        return (nameScore(b) + b.numSum) - (nameScore(a) + a.numSum);
+      });
+
+    if (!scored.length) {
+      mbVolData = { note: 'Dữ liệu trả về 0 — kiểm tra filter ngày/kho hoặc xem Console.', fetched:false };
+      showMbStatus('⚠️ Kết nối OK nhưng data = 0. Xem Console (⌘+⌥+I).', 'err');
+      return;
+    }
+
+    const best = scored[0];
+    mbVolData = {
+      fetched:  true,
+      cardName: best.dc.card.name,
+      total:    best.totSl || best.numSum,
+      smTotal:  best.smTotal,
+      bkTotal:  best.bkTotal,
+      allCards: scored.map(r => ({ name: r.dc.card.name, total: r.totSl || r.numSum })),
+    };
+    showMbStatus(`✅ Sản lượng nhập · ${best.dc.card.name}`, 'ok');
+
+  } catch(e) {
+    console.warn('[MB] Error:', e);
+    mbVolData = { error: e.message };
+    showMbStatus(`⚠️ ${e.message}`, 'err');
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════
+// RENDER NV CARD (yesterday - all shifts)
+// ═══════════════════════════════════════════════════════
+function renderNV(dateKey) {
+  const d = nvData[dateKey];
+  if (!d) return `<div class="card c-green"><div class="card-lbl"><div class="card-icon" style="background:rgba(16,185,129,.1)">👷</div>NHÂN VIÊN PHÂN HÀNG</div><div class="empty">Chưa có dữ liệu cho ngày này</div></div>`;
+
+  const shifts = ['CA 1','CA 2','CA 3'];
+  let totDL = 0, totN = 0;
+  shifts.forEach(ca => { if(d[ca]) { totDL += d[ca].diLam; totN += d[ca].nghi; } });
+
+  const caRows = shifts.map(ca => {
+    const s = d[ca]; if (!s) return '';
+    const caColor = ca==='CA 1'?'var(--ca1)':ca==='CA 2'?'var(--ca2)':'var(--ca3)';
+    const deptRows = Object.entries(s.dept).map(([bp, v]) =>
+      `<tr class="dept-row"><td>${bp}</td><td class="v-ok">${fmt(v.diLam)}</td><td class="${v.nghi>0?'v-bad':''}">${v.nghi>0?v.nghi:'—'}</td></tr>`
+    ).join('');
+    return `
+      <tr class="ca-row">
+        <td style="color:${caColor}">${ca}</td>
+        <td class="v-ok">${fmt(s.diLam)}</td>
+        <td class="${s.nghi>0?'v-bad':'v-warn'}">${s.nghi>0?s.nghi:'—'}</td>
+      </tr>${deptRows}`;
+  }).join('');
+
+  return `
+    <div class="card c-green">
+      <div class="card-lbl"><div class="card-icon" style="background:rgba(16,185,129,.1)">👷</div>NHÂN VIÊN PHÂN HÀNG</div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-lbl">Tổng đi làm</div><div class="kpi-val green">${fmt(totDL)}</div></div>
+        <div class="kpi" style="border-left:1px solid var(--border);padding-left:20px">
+          <div class="kpi-lbl">Nghỉ</div>
+          <div class="kpi-val ${totN>30?'red':'warn'}">${fmt(totN)}</div>
+        </div>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Ca / Bộ phận</th><th>Đi làm</th><th>Nghỉ</th></tr></thead>
+        <tbody>${caRows}</tbody>
+      </table>
+      <div class="ds-tag"><div class="ds-dot"></div>Google Sheets · Tự động cập nhật</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER FL CARD (yesterday - all shifts)
+// ═══════════════════════════════════════════════════════
+function renderFL(dateKey) {
+  const d = flData[dateKey];
+  if (!d || !d.summary) return `<div class="card c-blue"><div class="card-lbl"><div class="card-icon" style="background:rgba(59,130,246,.1)">🤝</div>FREELANCER (FL)</div><div class="empty">Chưa có dữ liệu</div></div>`;
+
+  const { summary, slots } = d;
+  const rc = rClass(summary.rate);
+  const grp = (shiftN, color) => {
+    const s = slots.filter(x => x.shift === shiftN);
+    if (!s.length) return '';
+    const rows = s.map(x => `
+      <div class="slot-item">
+        <div class="slot-time">${x.slot}</div>
+        <div class="slot-nums">
+          <div class="slot-yc">YC: ${x.yc}</div>
+          <div class="slot-tt" style="color:${rColor(x.rate)}">${x.tt}</div>
+          <div class="slot-rate ${rClass(x.rate)}">${fmtR(x.rate)}</div>
+        </div>
+      </div>`).join('');
+    const lbl = shiftN===1?'☀️ Ca 1':shiftN===2?'🌆 Ca 2':'🌙 Ca 3';
+    return `<div class="ca-group-hdr" style="color:${color}">${lbl}</div><div class="slot-list">${rows}</div>`;
+  };
+
+  return `
+    <div class="card c-blue">
+      <div class="card-lbl"><div class="card-icon" style="background:rgba(59,130,246,.1)">🤝</div>FREELANCER (FL)</div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-lbl">Yêu cầu</div><div class="kpi-val">${fmt(summary.yc)}</div></div>
+        <div class="kpi" style="border-left:1px solid var(--border);padding-left:20px">
+          <div class="kpi-lbl">Thực tế</div>
+          <div class="kpi-val" style="color:${rColor(summary.rate)}">${fmt(summary.tt)}</div>
+        </div>
+        <div class="kpi" style="border-left:1px solid var(--border);padding-left:20px">
+          <div class="kpi-lbl">Tỉ lệ ĐƯ</div>
+          <div class="kpi-val" style="color:${rColor(summary.rate)}">${fmtR(summary.rate)}</div>
+        </div>
+      </div>
+      <div class="prog"><div class="prog-fill ${rc}" style="width:${Math.min(summary.rate,130)}%"></div></div>
+      ${grp(1,'var(--ca1)')}${grp(2,'var(--ca2)')}${grp(3,'var(--ca3)')}
+      <div class="ds-tag"><div class="ds-dot"></div>Google Sheets · Tự động cập nhật</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER VOLUME CARD
+// ═══════════════════════════════════════════════════════
+function renderVol(dateKeys) {
+  const mbLink = `${MB_HOST}/dashboard/${MB_DASHBOARD_ID}-bao-cao-daily-xu-t-nh-p-t-n?ca_lv=Ca+1&ca_lv=Ca+2&ca_lv=Ca+3&kho=Kho+Trung+Chuy%E1%BB%83n+H%C3%A0+N%E1%BB%99i+02&ng%25C3%25A0y=${dateKeys.iso}~${dateKeys.iso}`;
+
+  let mainContent = '';
+
+  if (mbVolData && mbVolData.fetched) {
+    const rows = mbVolData.rows || mbVolData.raw?.data?.rows || [];
+    const cols = mbVolData.cols || mbVolData.raw?.data?.cols?.map(c=>c.name||c.display_name) || [];
+
+    // Try to find numeric columns and sum them intelligently
+    const numericCols = cols.map((c,i) => ({ name:c, idx:i }))
+      .filter(c => rows.some(r => !isNaN(parseFloat(r[c.idx]))));
+
+    // Find column most likely to be "total" — prioritise cols with keywords
+    const volKeywords = ['nhập','tổng','sl','số lượng','count','total','volume','qty'];
+    let mainColIdx = numericCols.find(c => volKeywords.some(k => c.name.toLowerCase().includes(k)))?.idx
+                     ?? numericCols[0]?.idx ?? 0;
+
+    const total = rows.reduce((s,r) => s + (parseFloat(r[mainColIdx])||0), 0);
+
+    // Try to split by type (small vs bulky) — look for type column
+    let smTotal = 0, bkTotal = 0;
+    const typeColIdx = cols.findIndex(c => ['loại','type','hàng','hang'].some(k=>c.toLowerCase().includes(k)));
+    if (typeColIdx >= 0) {
+      rows.forEach(r => {
+        const type = (r[typeColIdx]||'').toLowerCase();
+        const val  = parseFloat(r[mainColIdx]) || 0;
+        if (type.includes('normal') || type.includes('nhỏ')) smTotal += val;
+        else if (type.includes('bulky') || type.includes('freight') || type.includes('nặng') || type.includes('cồng')) bkTotal += val;
+        else smTotal += val;
+      });
+    }
+
+    // Show all card results for debugging
+    const allSummary = (mbVolData.allResults || [])
+      .filter(r => r.numTotal > 0)
+      .map(r => `<div style="font-size:11px;color:var(--t2);margin-top:3px">📋 ${r.dc.card.name}: <strong>${fmt(r.numTotal)}</strong></div>`)
+      .join('');
+
+    // Dùng giá trị đã tính sẵn trong loadMbData
+    const total   = mbVolData.total   || 0;
+    const smTotal = mbVolData.smTotal || 0;
+    const bkTotal = mbVolData.bkTotal || 0;
+    const allCardRows = (mbVolData.allCards || [])
+      .map(c => `<div style="font-size:11px;color:var(--t2);margin-top:3px">📋 ${c.name}: <strong>${fmt(c.total)}</strong></div>`)
+      .join('');
+
+    mainContent = `
+      <div class="vol-box">
+        <div class="vol-lbl">📦 Tổng nhập kho · ${mbVolData.cardName || 'Metabase'}</div>
+        <div class="vol-val" style="color:var(--green)">${fmt(total)}</div>
+      </div>
+      ${smTotal || bkTotal ? `
+      <div class="vol-split" style="margin-top:0">
+        <div class="vol-type sm"><div class="vol-type-lbl">📦 Hàng nhỏ</div><div class="vol-type-v">${fmt(smTotal)||'—'}</div></div>
+        <div class="vol-type bk"><div class="vol-type-lbl">🏋️ CK + Nặng</div><div class="vol-type-v">${fmt(bkTotal)||'—'}</div></div>
+      </div>` : ''}
+      ${allCardRows ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">${allCardRows}</div>` : ''}`;
+  } else {
+    const note = mbVolData?.note || '';
+    mainContent = `
+      <div class="notice warn">
+        <span>⚠️</span>
+        <div>
+          <div style="font-weight:600;margin-bottom:3px">${note || 'Chưa kết nối Metabase'}</div>
+          <div>Dán Session Token ở trên để tự động kéo số liệu sản lượng.</div>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="card c-cyan">
+      <div class="card-lbl"><div class="card-icon" style="background:rgba(6,182,212,.1)">📦</div>SẢN LƯỢNG NHẬP KHO</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Kho Trung Chuyển HN02 · ${dateKeys.disp}</div>
+      ${mainContent}
+      <a href="${mbLink}" target="_blank" class="btn btn-green" style="width:100%;justify-content:center;margin-top:14px;text-decoration:none">
+        📊 Mở Metabase Dashboard
+      </a>
+      <div class="ds-tag"><div class="ds-dot"></div>GHN BI · data-bi.ghn.vn</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER NV SHIFT CARD (today's specific Ca)
+// ═══════════════════════════════════════════════════════
+function renderNVShift(dateKey, caKey, cls) {
+  const d = nvData[dateKey];
+  const s = d && d[caKey];
+  if (!s) return `<div class="shift-card ${cls}"><div class="shift-hdr"><div class="shift-lbl">${caKey} — Nhân Viên</div></div><div class="shift-body"><div class="empty">Chưa có dữ liệu</div></div></div>`;
+
+  const deptRows = Object.entries(s.dept).map(([bp, v]) => `
+    <tr><td style="color:var(--t2)">${bp}</td>
+    <td class="v-ok">${fmt(v.diLam)}</td>
+    <td class="${v.nghi>0?'v-bad':''}">${v.nghi>0?v.nghi:'—'}</td></tr>`).join('');
+
+  return `
+    <div class="shift-card ${cls}">
+      <div class="shift-hdr">
+        <div class="shift-lbl">${caKey} — Nhân Viên</div>
+        <div class="shift-nums">
+          <div class="shift-n">${fmt(s.diLam)}</div>
+          <div class="shift-meta">đi làm${s.nghi>0?' / '+s.nghi+' nghỉ':''}</div>
+        </div>
+      </div>
+      <div class="shift-body">
+        <table class="tbl">
+          <thead><tr><th>Bộ phận</th><th>Đi làm</th><th>Nghỉ</th></tr></thead>
+          <tbody>${deptRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER FL SHIFT CARD
+// ═══════════════════════════════════════════════════════
+function renderFLShift(dateKey, shiftNum, cls) {
+  const d = flData[dateKey];
+  const slots = d ? d.slots.filter(s => s.shift === shiftNum) : [];
+
+  const totYC = slots.reduce((s,x)=>s+x.yc, 0);
+  const totTT = slots.reduce((s,x)=>s+x.tt, 0);
+  const rate  = totYC > 0 ? (totTT/totYC)*100 : 0;
+  const rc    = rClass(rate);
+
+  const rows = slots.map(x => `
+    <div class="slot-item">
+      <div class="slot-time">${x.slot}</div>
+      <div class="slot-nums">
+        <div class="slot-yc">YC: ${x.yc}</div>
+        <div class="slot-tt" style="color:${rColor(x.rate)}">${x.tt}</div>
+        <div class="slot-rate ${rClass(x.rate)}">${fmtR(x.rate)}</div>
+      </div>
+    </div>`).join('');
+
+  const caLabel = `CA ${shiftNum} — FL`;
+  return `
+    <div class="shift-card ${cls}">
+      <div class="shift-hdr">
+        <div class="shift-lbl">${caLabel}</div>
+        ${totYC > 0 ? `
+        <div class="shift-nums">
+          <div class="shift-n">${fmt(totTT)}</div>
+          <div class="shift-meta">/ ${totYC} YC &nbsp;<span class="slot-rate ${rc}">${fmtR(rate)}</span></div>
+        </div>` : ''}
+      </div>
+      <div class="shift-body">
+        ${rows ? `<div class="slot-list">${rows}</div>` : '<div class="empty">Chưa có dữ liệu slot</div>'}
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER PENDING SHIFT BLOCK
+// ═══════════════════════════════════════════════════════
+function renderPendingShift(caNum, updateTime, cls, todayDisp) {
+  const caColor = cls==='ca1'?'var(--ca1)':cls==='ca2'?'var(--ca2)':'var(--ca3)';
+  const caEmoji = cls==='ca1'?'🌅':cls==='ca2'?'🌆':'🌙';
+  return `
+    <div class="shift-card ${cls}">
+      <div class="shift-hdr">
+        <div class="shift-lbl">CA ${caNum}</div>
+        <div style="font-size:12px;color:var(--t3)">⏳ Cập nhật sau ${updateTime}</div>
+      </div>
+      <div class="shift-body">
+        <div class="empty" style="padding:24px 0">
+          ${caEmoji} Số liệu Ca ${caNum} sẽ hiển thị sau <strong style="color:${caColor}">${updateTime}</strong> hôm nay ${todayDisp}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════
+function renderAll() {
+  if (!mbSkipped && !mbSession && !mbVolData) return; // wait for MB decision
+
+  const now   = new Date();
+  const today = now;
+  const yest  = new Date(today); yest.setDate(today.getDate()-1);
+  const tk    = dateKeys(today);
+  const yk    = dateKeys(yest);
+  const gates = getGates(now);
+  renderGates(gates);
+
+  const shiftCfg = [
+    { n:1, caKey:'CA 1', cls:'ca1', time:'18:00', emoji:'🌅' },
+    { n:2, caKey:'CA 2', cls:'ca2', time:'21:00', emoji:'🌆' },
+    { n:3, caKey:'CA 3', cls:'ca3', time:'23:30', emoji:'🌙' },
+  ];
+
+  const todayShifts = shiftCfg.map(sc => {
+    const isOpen = gates[`ca${sc.n}`];
+    const caColor = sc.cls==='ca1'?'var(--ca1)':sc.cls==='ca2'?'var(--ca2)':'var(--ca3)';
+    const header = `
+      <div class="sec-hdr">
+        <div class="sec-icon" style="background:rgba(${sc.cls==='ca1'?'59,130,246':sc.cls==='ca2'?'245,158,11':'139,92,246'},.15)">${sc.emoji}</div>
+        <div class="sec-info">
+          <div class="sec-title" style="color:${caColor}">CA ${sc.n} hôm nay · ${tk.disp}</div>
+          <div class="sec-sub">${isOpen ? '✅ Đã cập nhật dữ liệu' : `Cập nhật sau ${sc.time}`}</div>
+        </div>
+        <div class="sec-line"></div>
+        ${!isOpen ? `<div class="pending-tag">⏳ Sau ${sc.time}</div>` : ''}
+      </div>`;
+
+    if (isOpen) {
+      return `<div class="sec">${header}
+        <div class="g2">
+          ${renderNVShift(tk.s1, sc.caKey, sc.cls)}
+          ${renderFLShift(tk.s2, sc.n, sc.cls)}
+        </div></div>`;
+    } else {
+      return `<div class="sec">${header}
+        <div class="g2">
+          ${renderPendingShift(sc.n, sc.time, sc.cls, tk.disp)}
+          ${renderPendingShift(sc.n, sc.time, sc.cls, tk.disp).replace(`CA ${sc.n}`,'FL')}
+        </div></div>`;
+    }
+  }).join('<div class="divider"></div>');
+
+  document.getElementById('main').innerHTML = `
+    <!-- ══ YESTERDAY ══ -->
+    <div class="sec">
+      <div class="sec-hdr">
+        <div class="sec-icon" style="background:rgba(16,185,129,.15)">📅</div>
+        <div class="sec-info">
+          <div class="sec-title" style="color:var(--green)">Số liệu ngày qua — ${yk.disp}</div>
+          <div class="sec-sub">Dữ liệu đầy đủ · Cập nhật lúc ~08:00 sáng ${tk.disp}</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="g3">
+        ${renderNV(yk.s1)}
+        ${renderFL(yk.s2)}
+        ${renderVol(yk)}
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ TODAY SHIFTS ══ -->
+    ${todayShifts}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// FETCH CSV DATA
+// ═══════════════════════════════════════════════════════
+function setStatus(msg, type='green') {
+  const dot = document.getElementById('st-dot');
+  dot.className = `dot ${type}`;
+  document.getElementById('st-txt').textContent = msg;
+}
+
+async function fetchCSV(url) {
+  const fetchWithTimeout = async (fetchUrl, opts = {}, ms = 10000) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const r = await fetch(fetchUrl, { ...opts, signal: ctrl.signal });
+      clearTimeout(t);
+      return r;
+    } catch(e) { clearTimeout(t); throw e; }
+  };
+
+  // 1. Try direct (works from localhost since Google allows all origins)
+  try {
+    const r = await fetchWithTimeout(url, { cache: 'no-store', mode: 'cors' });
+    if (r.ok) return r.text();
+    throw new Error(`HTTP ${r.status}`);
+  } catch(e) {
+    const isNetErr = e.message.toLowerCase().includes('failed') ||
+                     e.message.toLowerCase().includes('network') ||
+                     e.message.toLowerCase().includes('abort');
+    if (!isNetErr) throw e;
+  }
+  // 2. Fallback: allorigins.win proxy
+  console.log('[GSheets] Direct failed/timeout, trying allorigins.win...');
+  const r2 = await fetchWithTimeout(GS_PROXY + encodeURIComponent(url), { cache: 'no-store' }, 12000);
+  if (!r2.ok) throw new Error(`Proxy lỗi HTTP ${r2.status}`);
+  return r2.text();
+}
+
+async function loadSheets() {
+  setStatus('Đang tải Google Sheets...', 'orange');
+  try {
+    const [t1, t2] = await Promise.all([fetchCSV(SHEET1), fetchCSV(SHEET2)]);
+    nvData = parseSheet1(t1);
+    flData = parseSheet2(t2);
+    const now = new Date();
+    setStatus(`✅ Cập nhật ${pad(now.getHours())}:${pad(now.getMinutes())} · Sheets OK`, 'green');
+    return true;
+  } catch(e) {
+    setStatus(`❌ Lỗi tải Sheets: ${e.message}`, 'red');
+    return false;
+  }
+}
+
+async function loadAll() {
+  const btn = document.getElementById('refresh-btn');
+  btn.textContent = '⏳ Đang tải...'; btn.disabled = true;
+  const ok = await loadSheets();
+  btn.textContent = '🔄 Làm mới'; btn.disabled = false;
+  if (ok) renderAll();  // render ngay dù chưa có Metabase
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTO REFRESH every 5 min
+// ═══════════════════════════════════════════════════════
+async function autoRefresh() {
+  await loadSheets();
+  if (mbSession) await loadMbData();
+  renderAll();
+}
+setInterval(autoRefresh, 5 * 60 * 1000);
+
+// ═══════════════════════════════════════════════════════
+// INIT — render ngay, load data ở background
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore saved session token
+  const saved = sessionStorage.getItem('mb_session');
+  if (saved) {
+    mbSession = saved;
+    const panel = document.getElementById('mb-panel');
+    if (panel) panel.style.display = 'none';
+  }
+
+  // ① RENDER NGAY — không đợi bất kỳ thứ gì
+  renderAll();
+  setStatus('⏳ Đang tải Google Sheets...', 'orange');
+
+  // ② Load Sheets ở background — update khi xong
+  loadSheets().then(ok => {
+    if (ok) {
+      renderAll();
+      // Nếu có session token, load Metabase data
+      if (mbSession) loadMbData().then(() => renderAll());
+    }
+  });
+});
+
+window.skipMb = skipMb;
+window.mbLogin = mbLogin;
+</script>
+</body>
+</html>

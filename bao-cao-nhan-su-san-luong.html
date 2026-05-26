@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Báo Cáo Vận Hành · KTC HN02 — GHN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:   #FF6C0A;
+      --orange2:  #FF8533;
+      --orange-bg:#FFF3EC;
+      --blue:     #007ED4;
+      --blue-bg:  #EBF5FF;
+      --green:    #00A651;
+      --green-bg: #E6F7EE;
+      --red:      #E53935;
+      --red-bg:   #FDECEA;
+      --purple:   #7C3AED;
+      --purple-bg:#F3EFFF;
+
+      --bg:       #F5F6FA;
+      --surface:  #FFFFFF;
+      --border:   #E8EAED;
+      --border2:  #D1D5DB;
+      --t1:       #111827;
+      --t2:       #4B5563;
+      --t3:       #9CA3AF;
+
+      --ca1: #FF6C0A;
+      --ca2: #007ED4;
+      --ca3: #7C3AED;
+
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,.06);
+      --shadow-hover: 0 6px 24px rgba(0,0,0,.10);
+    }
+
+    body {
+      font-family: 'Exo', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      min-height: 100vh;
+    }
+
+    /* ─── HEADER ─── */
+    .hdr {
+      background: var(--surface);
+      border-bottom: 2px solid var(--orange);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(255,108,10,.08);
+    }
+    .hdr-left { display: flex; align-items: center; gap: 14px; }
+    .ghn-logo {
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none;
+    }
+    .ghn-logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--orange), #FF4500);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px; color: white; letter-spacing: -1px;
+    }
+    .ghn-logo-text { font-size: 13px; }
+    .ghn-logo-text strong { color: var(--orange); font-weight: 800; font-size: 16px; }
+    .ghn-logo-text span { color: var(--t3); font-size: 11px; display: block; font-weight: 500; }
+    .hdr-divider { width: 1px; height: 32px; background: var(--border); }
+    .hdr-title { font-size: 14px; font-weight: 700; color: var(--t1); }
+    .hdr-sub   { font-size: 11px; color: var(--t3); font-weight: 500; margin-top: 1px; }
+
+    .hdr-right { display: flex; align-items: center; gap: 16px; }
+    .clock-wrap { text-align: right; }
+    .clock { font-size: 22px; font-weight: 800; color: var(--orange); font-variant-numeric: tabular-nums; line-height: 1; }
+    .clock-d { font-size: 11px; color: var(--t3); font-weight: 500; margin-top: 2px; }
+
+    .btn-refresh {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--orange); color: white; border: none;
+      border-radius: 8px; padding: 8px 16px; font-family: inherit;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .btn-refresh:hover { background: var(--orange2); transform: translateY(-1px); }
+    .btn-refresh:active { transform: translateY(0); }
+
+    /* ─── STATUS BAR ─── */
+    .sbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px;
+    }
+    .sbar-l { display: flex; align-items: center; gap: 8px; }
+    .sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--t3); }
+    .sdot.ok { background: var(--green); box-shadow: 0 0 0 3px rgba(0,166,81,.15); }
+    .sdot.err { background: var(--red); }
+    .sdot.loading { background: var(--orange); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .gates { display: flex; gap: 8px; }
+    .gate {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
+      background: var(--border); color: var(--t2);
+      transition: all .2s;
+    }
+    .gate.active { color: white; }
+    .g-ca1.active { background: var(--orange); }
+    .g-ca2.active { background: var(--blue); }
+    .g-ca3.active { background: var(--purple); }
+
+    /* ─── DATE NAV ─── */
+    .datenav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+    }
+    .datenav-btn {
+      width: 32px; height: 32px;
+      background: var(--surface); border: 1.5px solid var(--border2);
+      border-radius: 8px; color: var(--t2);
+      font-size: 18px; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .datenav-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-bg); }
+    .datenav-label {
+      font-size: 14px; font-weight: 700; color: var(--t1);
+      min-width: 200px; text-align: center; letter-spacing: .3px;
+    }
+    .datenav-input {
+      border: 1.5px solid var(--border2); border-radius: 8px;
+      padding: 5px 10px; font-family: inherit; font-size: 12px;
+      color: var(--t2); background: var(--surface); cursor: pointer; outline: none;
+      transition: border-color .15s;
+    }
+    .datenav-input:hover, .datenav-input:focus { border-color: var(--orange); }
+    .datenav-today {
+      font-size: 12px; font-weight: 600; color: var(--orange);
+      cursor: pointer; padding: 5px 12px; border-radius: 6px;
+      background: var(--orange-bg); transition: all .15s;
+    }
+    .datenav-today:hover { background: var(--orange); color: white; }
+
+    /* ─── METABASE PANEL ─── */
+    .mb-panel {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+    .mb-panel h2 { font-size: 14px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+    .mb-panel p  { font-size: 12px; color: var(--t2); margin-bottom: 10px; }
+    .mb-guide {
+      background: var(--blue-bg);
+      border: 1px solid #BFD9F0;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 12px; color: var(--t2); line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    .mb-row { display: flex; gap: 8px; align-items: center; }
+    .mb-row input {
+      flex: 1; max-width: 480px;
+      border: 1.5px solid var(--border2); border-radius: 8px;
+      padding: 9px 14px; font-family: inherit; font-size: 13px;
+      color: var(--t1); outline: none; transition: border-color .15s;
+    }
+    .mb-row input:focus { border-color: var(--orange); }
+    .btn-orange {
+      background: var(--orange); color: white; border: none;
+      border-radius: 8px; padding: 9px 20px;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-orange:hover { background: var(--orange2); }
+    .btn-gray {
+      background: var(--surface); color: var(--t2);
+      border: 1.5px solid var(--border2);
+      border-radius: 8px; padding: 9px 16px;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-gray:hover { border-color: var(--t2); color: var(--t1); }
+    .mb-status { font-size: 12px; margin-top: 8px; padding: 8px 12px; border-radius: 6px; }
+    .mb-status.ok  { background: var(--green-bg); color: var(--green); }
+    .mb-status.err { background: var(--red-bg); color: var(--red); }
+
+    /* ─── MAIN WRAP ─── */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0; }
+    .page-body { padding: 20px 24px 40px; }
+
+    /* ─── SECTION HEADER ─── */
+    .section-hdr {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 0 12px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .section-hdr-left { display: flex; align-items: center; gap: 8px; }
+    .section-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--orange); flex-shrink: 0;
+    }
+    .section-dot.blue { background: var(--blue); }
+    .section-hdr h3 { font-size: 13px; font-weight: 700; color: var(--t1); text-transform: uppercase; letter-spacing: .5px; }
+    .section-hdr-right { font-size: 11px; color: var(--t3); font-weight: 500; }
+
+    /* ─── GRID ─── */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media(max-width:900px) { .grid { grid-template-columns: 1fr; } }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .2s;
+    }
+    .card:hover { box-shadow: var(--shadow-hover); }
+
+    .card-hdr {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .card-ttl { font-size: 13px; font-weight: 700; color: var(--t2); text-transform: uppercase; letter-spacing: .4px; }
+    .card-sub { font-size: 11px; color: var(--t3); margin-top: 1px; font-weight: 500; }
+
+    /* ─── KPI ─── */
+    .kpi-row { display: flex; gap: 20px; margin-bottom: 12px; }
+    .kpi { display: flex; flex-direction: column; gap: 2px; }
+    .kpi-v { font-size: 32px; font-weight: 800; line-height: 1; }
+    .kpi-v.ok  { color: var(--green); }
+    .kpi-v.bad { color: var(--red); }
+    .kpi-l { font-size: 11px; color: var(--t3); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+
+    /* ─── NV TABLE ─── */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .5px; padding: 0 0 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    td { padding: 5px 0; color: var(--t2); }
+    td.ok  { color: var(--green); font-weight: 700; }
+    td.bad { color: var(--red);   font-weight: 700; }
+    tr.ca-row td { font-weight: 700; font-size: 13px; color: var(--t1); padding-top: 10px; }
+    tr.ca-row td:first-child { padding-left: 0; }
+    tr:not(.ca-row) td:first-child { padding-left: 14px; color: var(--t3); }
+
+    /* ─── PROGRESS ─── */
+    .prog-wrap { height: 5px; background: var(--border); border-radius: 10px; overflow: hidden; margin: 8px 0 14px; }
+    .prog { height: 100%; border-radius: 10px; transition: width .5s; }
+    .pill {
+      font-size: 10px; font-weight: 700; border-radius: 20px;
+      padding: 1px 6px; display: inline-block;
+    }
+    .pill.ok  { background: var(--green-bg);  color: var(--green); }
+    .pill.bad { background: var(--red-bg);    color: var(--red); }
+    .pill.warn{ background: var(--orange-bg); color: var(--orange); }
+
+    /* ─── FL SLOTS ─── */
+    .fl-ca-hdr {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; padding: 10px 0 6px;
+      display: flex; align-items: center; gap: 6px;
+      border-top: 1px solid var(--border); margin-top: 4px;
+    }
+    .slot { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--bg); }
+    .slot-time { color: var(--t2); font-weight: 500; }
+    .slot-nums { display: flex; align-items: center; gap: 8px; }
+
+    /* ─── VOL CARD ─── */
+    .vol-lbl { font-size: 11px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .vol-total { font-size: 42px; font-weight: 800; color: var(--orange); line-height: 1; margin-bottom: 14px; }
+    .vol-split { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
+    .vol-box {
+      background: var(--bg); border-radius: 8px; padding: 10px;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .vol-bv { font-size: 18px; font-weight: 800; line-height: 1; margin-bottom: 2px; }
+    .vol-bl { font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .4px; }
+    .vol-pct { font-size: 10px; color: var(--t3); margin-top: 2px; }
+
+    .fresh-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
+    }
+    .fresh-badge.ok  { background: var(--green-bg);  color: var(--green); }
+    .fresh-badge.warn{ background: var(--orange-bg); color: var(--orange); }
+
+    /* ─── SHIFT CARD ─── */
+    .shift-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+      margin-bottom: 12px; color: white;
+    }
+    .shift-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .shift-section h4 { font-size: 11px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+
+    /* ─── BTN LINK ─── */
+    .btn-link {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--orange-bg); color: var(--orange);
+      border: 1.5px solid #FFB380; border-radius: 8px;
+      padding: 9px 16px; font-size: 12px; font-weight: 700;
+      text-decoration: none; margin-top: 12px;
+      transition: all .15s; cursor: pointer;
+    }
+    .btn-link:hover { background: var(--orange); color: white; border-color: var(--orange); }
+
+    /* ─── EMPTY / LOADING ─── */
+    .empty { text-align: center; padding: 24px 0; color: var(--t3); font-size: 13px; }
+    .empty-icon { font-size: 32px; margin-bottom: 8px; }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-box { padding: 48px; text-align: center; }
+    .loading-box p { font-size: 13px; color: var(--t3); margin-top: 8px; }
+
+    /* ─── FOOTER NOTE ─── */
+    .card-footer { font-size: 10px; color: var(--t3); margin-top: 12px; display: flex; align-items: center; gap: 4px; }
+    .card-footer::before { content: '●'; color: var(--orange); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-left">
+      <a class="ghn-logo" href="#">
+        <img src="https://cdn.hstatic.net/themes/200000472237/1001423864/14/logo.png?v=2850" alt="GHN Logo" style="height: 38px; display: block; object-fit: contain;">
+      </a>
+      <div class="hdr-divider"></div>
+      <div>
+        <div class="hdr-title">Báo Cáo Vận Hành · KTC HN02</div>
+        <div class="hdr-sub">Nhân sự · FL đáp ứng · Sản lượng nhập kho</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="clock-wrap">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="clock-d" id="clockd">--/--/----</div>
+      </div>
+      <button class="btn-refresh" id="btn-refresh" onclick="doRefresh()">🔄 Làm mới</button>
+    </div>
+  </header>
+
+  <!-- STATUS BAR -->
+  <div class="sbar">
+    <div class="sbar-l">
+      <div class="sdot loading" id="sdot"></div>
+      <span id="stxt" style="color:var(--t2)">Đang tải dữ liệu...</span>
+    </div>
+    <div class="gates">
+      <div class="gate g-ca1" id="g1">🌅 Ca 1 · 18:00</div>
+      <div class="gate g-ca2" id="g2">🌆 Ca 2 · 21:00</div>
+      <div class="gate g-ca3" id="g3">🌙 Ca 3 · 23:30</div>
+    </div>
+  </div>
+
+  <!-- DATE NAV -->
+  <div class="datenav">
+    <button class="datenav-btn" onclick="goDay(-1)" title="Ngày trước">‹</button>
+    <span class="datenav-label" id="datenav-label">--/--/----</span>
+    <button class="datenav-btn" onclick="goDay(1)" title="Ngày sau">›</button>
+    <input type="date" class="datenav-input" id="datenav-input" onchange="goDate(this.value)" title="Chọn ngày">
+    <span class="datenav-today" onclick="goToday()">Hôm qua</span>
+  </div>
+
+  <!-- METABASE PANEL -->
+  <div class="mb-panel" id="mb-panel">
+    <h2>🔑 Kết nối Metabase — Sản lượng nhập kho</h2>
+    <p>Dán Session Token từ cookie để tự động kéo số liệu. Token hợp lệ vài ngày đến vài tuần.</p>
+    <div class="mb-guide">
+      <strong>MacBook (Safari):</strong> Vào <strong>data-bi.ghn.vn</strong> → đăng nhập Google →
+      Develop menu → <strong>Show Web Inspector</strong> → tab <strong>Mạng</strong> → reload trang →
+      click request bất kỳ → Headers → tìm <strong>Cookie:</strong> → copy giá trị sau <strong>metabase.SESSION=</strong>
+      <br>(Nếu chưa có Develop menu: Safari → Settings → Advanced → bật "Show features for web developers")
+    </div>
+    <div class="mb-row">
+      <input type="password" id="mb-token" placeholder="Dán token vào đây...">
+      <button class="btn-orange" id="mb-btn" onclick="doMbLogin()">Kết nối</button>
+      <button class="btn-gray" onclick="doSkip()">Bỏ qua</button>
+    </div>
+    <div class="mb-status" id="mb-status" style="display:none"></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="page-body">
+    <div id="main">
+      <div class="loading-box">
+        <div class="spinner"></div>
+        <p>Đang tải dữ liệu từ Google Sheets...</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .wrap -->
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc/export?format=csv&gid=1878142111';
+const SHEET2 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=1455372314';
+const MB_HOST  = 'https://data-bi.ghn.vn';
+const MB_DASH  = 143;
+const MB_PROXY = '/mb-proxy';
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let nvData = {};
+let flData = {};
+let mbVol  = null;
+let mbToken = '';
+let mbSkipped = false;
+let sheetsLoading = false;
+
+// Ngày đang xem (mặc định = hôm qua)
+let viewDate = (function(){
+  const d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); return d;
+})();
+
+// ═══════════════════════════════════════════════
+// DATE NAV
+// ═══════════════════════════════════════════════
+function setViewDate(d) {
+  viewDate = new Date(d); viewDate.setHours(0,0,0,0);
+  const dk = dateKeys(viewDate);
+  const label = document.getElementById('datenav-label');
+  const inp   = document.getElementById('datenav-input');
+  if (label) label.textContent = `${['CN','T2','T3','T4','T5','T6','T7'][viewDate.getDay()]}, ${dk.disp}`;
+  if (inp)   inp.value = dk.iso;
+  mbVol = null;
+  render();
+}
+function goDay(n) {
+  const d = new Date(viewDate); d.setDate(d.getDate() + n);
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (d >= today) d.setDate(today.getDate()-1);
+  setViewDate(d);
+}
+function goDate(isoStr) {
+  if (!isoStr) return;
+  const d = new Date(isoStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (d >= today) d.setDate(today.getDate()-1);
+  setViewDate(d);
+}
+function goToday() {
+  const d = new Date(); d.setDate(d.getDate()-1);
+  setViewDate(d);
+}
+
+// ═══════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════
+function tickClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  document.getElementById('clockd').textContent = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
+  // Update gate highlights
+  const t = now.getHours()*60 + now.getMinutes();
+  const g1 = document.getElementById('g1'), g2 = document.getElementById('g2'), g3 = document.getElementById('g3');
+  if (g1) g1.className = 'gate g-ca1' + (t >= 18*60 ? ' active' : '');
+  if (g2) g2.className = 'gate g-ca2' + (t >= 21*60 ? ' active' : '');
+  if (g3) g3.className = 'gate g-ca3' + ((t >= 23*60+30 || t < 6*60) ? ' active' : '');
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function fmt(n)  { return n == null || isNaN(n) ? '—' : Number(n).toLocaleString('vi-VN'); }
+function fmtR(r) { return r == null ? '—' : r.toFixed(1) + '%'; }
+function rColor(r) {
+  if (!r) return 'var(--t3)';
+  if (r >= 90) return 'var(--green)';
+  if (r >= 70) return 'var(--orange)';
+  return 'var(--red)';
+}
+function rClass(r) {
+  if (!r) return '';
+  if (r >= 90) return 'ok'; if (r >= 70) return 'warn'; return 'bad';
+}
+
+// Build date keys for both sheets
+function isoDate(d) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function dateKeys(d) {
+  const pad = n => String(n).padStart(2,'0');
+  const dd = pad(d.getDate()), mm = pad(d.getMonth()+1), yyyy = d.getFullYear();
+  return {
+    s1:   `${mm}/${dd}/${yyyy}`,           // Sheet1 NV key
+    s2:   `${d.getDate()}/${d.getMonth()+1}/${yyyy}`, // Sheet2 FL key
+    disp: `${dd}/${mm}/${yyyy}`,
+    iso:  isoDate(d),
+  };
+}
+
+// ═══════════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════════
+function setStatus(txt, cls) {
+  const dot = document.getElementById('sdot');
+  const stxt = document.getElementById('stxt');
+  if (!dot || !stxt) return;
+  dot.className = 'sdot' + (cls === 'g' ? ' ok' : cls === 'r' ? ' err' : ' loading');
+  stxt.textContent = txt;
+  stxt.style.color = cls === 'g' ? 'var(--green)' : cls === 'r' ? 'var(--red)' : 'var(--t2)';
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render() {
+  const today = new Date();
+  const vd    = viewDate;
+  const vdK   = dateKeys(vd);
+  const todK  = dateKeys(today);
+
+  const DAYS = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+  const navLabel = document.getElementById('datenav-label');
+  const navInput = document.getElementById('datenav-input');
+  if (navLabel) navLabel.textContent = `${DAYS[vd.getDay()]}, ${vdK.disp}`;
+  if (navInput && !navInput.value) navInput.value = vdK.iso;
+
+  const yest = new Date(today); yest.setDate(today.getDate()-1); yest.setHours(0,0,0,0);
+  const isYest = vd.toDateString() === yest.toDateString();
+
+  const h = today.getHours(), m = today.getMinutes(), t = h*60+m;
+  // Ca hôm nay: cập nhật theo giờ thực tế
+  // ≥10:00 → Ca 1 · ≥18:00 → Ca 2 · ≥23:30 → Ca 3
+  const showCa1 = t >= 10*60;
+  const showCa2 = t >= 18*60;
+  const showCa3 = t >= 23*60 + 30;
+
+  const sectionLabel = isYest
+    ? 'Dữ liệu đầy đủ · Cập nhật lúc ~08:00'
+    : (vd < yest ? 'Dữ liệu lịch sử' : 'Dữ liệu hôm nay');
+
+  let html = '';
+
+  html += `
+  <div class="section-hdr">
+    <div class="section-hdr-left">
+      <div class="section-dot"></div>
+      <h3>📅 Số liệu ngày — ${DAYS[vd.getDay()]}, ${vdK.disp}</h3>
+    </div>
+    <div class="section-hdr-right">${sectionLabel}</div>
+  </div>
+  <div class="grid">
+    ${renderNVCard(vdK.s1)}
+    ${renderFLCard(vdK.s2)}
+    ${renderVolCard(vdK)}
+  </div>`;
+
+  if (showCa1 || showCa2 || showCa3) {
+    const nextLabel = !showCa2 ? '· Ca 2 cập nhật lúc 18:00' : !showCa3 ? '· Ca 3 cập nhật lúc 23:30' : '';
+    html += `
+  <div class="section-hdr" style="margin-top:28px">
+    <div class="section-hdr-left">
+      <div class="section-dot blue"></div>
+      <h3>🕐 Ca hôm nay — ${DAYS[today.getDay()]}, ${todK.disp}</h3>
+    </div>
+    <div class="section-hdr-right">${nextLabel}</div>
+  </div>
+  <div class="grid">`;
+    if (showCa1) html += renderShiftCard(todK, 'CA 1', '🌅');
+    if (showCa2) html += renderShiftCard(todK, 'CA 2', '🌆');
+    if (showCa3) html += renderShiftCard(todK, 'CA 3', '🌙');
+    html += `</div>`;
+  }
+
+  document.getElementById('main').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: NV CARD
+// ═══════════════════════════════════════════════
+function renderNVCard(dateK) {
+  const d = nvData[dateK];
+  if (!d) return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:var(--green-bg);font-size:20px">👷</div>
+      <div><div class="card-ttl">Nhân Viên Phân Hàng</div></div>
+    </div>
+    <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu NV<br><small style="color:var(--t3)">(key: ${dateK})</small></div>
+  </div>`;
+
+  const cas = ['CA 1','CA 2','CA 3'];
+  let totDL=0, totN=0;
+  cas.forEach(ca => { if(d[ca]){totDL+=d[ca].diLam;totN+=d[ca].nghi;} });
+
+  let rows = '';
+  cas.forEach(ca => {
+    const s = d[ca]; if (!s) return;
+    const caColor = ca==='CA 1'?'var(--ca1)':ca==='CA 2'?'var(--ca2)':'var(--ca3)';
+    const deptRows = Object.entries(s.dept||{}).map(([bp,v]) =>
+      `<tr><td style="padding-left:14px;color:var(--t3)">${bp}</td><td class="ok">${fmt(v.diLam)}</td><td class="${v.nghi>0?'bad':''}">${v.nghi>0?v.nghi:'—'}</td></tr>`
+    ).join('');
+    rows += `<tr class="ca-row"><td style="color:${caColor}">${ca}</td><td class="ok">${fmt(s.diLam)}</td><td class="${s.nghi>0?'bad':''}">${s.nghi>0?s.nghi:'—'}</td></tr>${deptRows}`;
+  });
+
+  return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:var(--green-bg);font-size:20px">👷</div>
+      <div><div class="card-ttl">Nhân Viên Phân Hàng</div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-v ok">${fmt(totDL)}</div><div class="kpi-l">Đi làm</div></div>
+      <div class="kpi"><div class="kpi-v ${totN>0?'bad':''}">${fmt(totN)}</div><div class="kpi-l">Nghỉ</div></div>
+    </div>
+    <table><tr><th>Ca / Bộ phận</th><th>Đi làm</th><th>Nghỉ</th></tr>${rows}</table>
+    <div class="card-footer">Google Sheets · Tự động cập nhật</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: FL CARD
+// ═══════════════════════════════════════════════
+function renderFLCard(dateK) {
+  const d = flData[dateK];
+  if (!d || !d.summary) return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:var(--orange-bg);font-size:20px">⚡</div>
+      <div><div class="card-ttl">Freelancer (FL)</div></div>
+    </div>
+    <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu FL<br><small style="color:var(--t3)">(key: ${dateK})</small></div>
+  </div>`;
+
+  const { summary, slots } = d;
+
+  const grp = (shiftN, color) => {
+    const s = slots.filter(x => x.shift === shiftN);
+    if (!s.length) return '';
+    const rows = s.map(x => `
+      <div class="slot">
+        <div class="slot-time">${x.slot}</div>
+        <div class="slot-nums">
+          <span style="color:var(--t3);font-size:11px">YC: ${x.yc}</span>
+          <span style="color:${rColor(x.rate)};font-weight:700;font-size:13px">${x.tt}</span>
+          <span class="pill ${rClass(x.rate)}">${fmtR(x.rate)}</span>
+        </div>
+      </div>`).join('');
+    const lbl = shiftN===1?'🌅 Ca 1':shiftN===2?'🌆 Ca 2':'🌙 Ca 3';
+    return `<div class="fl-ca-hdr" style="color:${color}">${lbl}</div><div>${rows}</div>`;
+  };
+
+  return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:var(--orange-bg);font-size:20px">⚡</div>
+      <div><div class="card-ttl">Freelancer (FL)</div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-v" style="color:var(--orange)">${fmt(summary.yc)}</div><div class="kpi-l">Yêu cầu</div></div>
+      <div class="kpi"><div class="kpi-v" style="color:${rColor(summary.rate)}">${fmt(summary.tt)}</div><div class="kpi-l">Thực tế</div></div>
+      <div class="kpi"><div class="kpi-v" style="color:${rColor(summary.rate)}">${fmtR(summary.rate)}</div><div class="kpi-l">Tỉ lệ ĐƯ</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog" style="width:${Math.min(summary.rate,100)}%;background:${rColor(summary.rate)}"></div></div>
+    ${grp(1,'var(--ca1)')}${grp(2,'var(--ca2)')}${grp(3,'var(--ca3)')}
+    <div class="card-footer">Google Sheets · Tự động cập nhật</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: VOL CARD
+// slug thông số Xuất/Nhập (lưu để build link URL)
+// ═══════════════════════════════════════════════
+let mbXNSlug = 'in_out';
+
+function renderVolCard(dk) {
+  const dateParam = `ng%25C3%25A0y=${dk.iso}~${dk.iso}`;
+  const xnParam   = `${mbXNSlug}=Nh%E1%BA%ADP`;
+  const mbLink = `${MB_HOST}/dashboard/${MB_DASH}?kho=Kho+Trung+Chuy%E1%BB%83n+H%C3%A0+N%E1%BB%99i+02&${dateParam}&${xnParam}`;
+
+  // Metabase update lúc 09:00 hàng ngày → dữ liệu ngày N-1
+  const isAfter9 = new Date().getHours() >= 9;
+
+  if (!mbVol) {
+    const note = !isAfter9
+      ? `<div class="fresh-badge warn">⏳ Dữ liệu sẽ cập nhật sau 09:00</div>`
+      : '';
+    return `<div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:var(--blue-bg);font-size:20px">📦</div>
+        <div><div class="card-ttl">Sản Lượng Nhập Kho</div>
+        <div class="card-sub">Kho Trung Chuyển HN02 · ${dk.disp}</div></div>
+      </div>
+      ${note}
+      <div class="empty"><div class="empty-icon">🔑</div>Kết nối Metabase ở trên<br>để xem số liệu sản lượng</div>
+      <a href="${mbLink}" target="_blank" class="btn-link">📊 Mở Metabase Dashboard</a>
+    </div>`;
+  }
+
+  const hasSplit = mbVol.sm || mbVol.ck || mbVol.hv;
+  const pct = v => mbVol.total > 0 ? Math.round(v/mbVol.total*100) : 0;
+  const badge = isAfter9
+    ? `<div class="fresh-badge ok">✅ Đã cập nhật (sau 09:00)</div>`
+    : `<div class="fresh-badge warn">⏳ Có thể chưa đầy đủ (cập nhật lúc 09:00)</div>`;
+
+  return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:var(--blue-bg);font-size:20px">📦</div>
+      <div><div class="card-ttl">Sản Lượng Nhập Kho</div>
+      <div class="card-sub">Kho Trung Chuyển HN02 · ${dk.disp}</div></div>
+    </div>
+    ${badge}
+    <div class="vol-lbl">Tổng nhập [Nhập]</div>
+    <div class="vol-total">${fmt(mbVol.total)}</div>
+    ${hasSplit ? `
+    <div class="vol-split">
+      <div class="vol-box">
+        <div class="vol-bv" style="color:var(--blue)">${fmt(mbVol.sm)}</div>
+        <div class="vol-bl">📦 Nhỏ</div>
+        <div class="vol-pct">${pct(mbVol.sm)}%</div>
+      </div>
+      <div class="vol-box">
+        <div class="vol-bv" style="color:var(--orange)">${fmt(mbVol.ck)}</div>
+        <div class="vol-bl">🚐 CK</div>
+        <div class="vol-pct">${pct(mbVol.ck)}%</div>
+      </div>
+      <div class="vol-box">
+        <div class="vol-bv" style="color:var(--purple)">${fmt(mbVol.hv)}</div>
+        <div class="vol-bl">⚖️ Nặng</div>
+        <div class="vol-pct">${pct(mbVol.hv)}%</div>
+      </div>
+    </div>` : ''}
+    <div class="card-footer">Metabase · Cập nhật lúc 09:00 ngày N (dữ liệu N-1)</div>
+    <a href="${mbLink}" target="_blank" class="btn-link">📊 Mở Metabase Dashboard</a>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: SHIFT CARD
+// ═══════════════════════════════════════════════
+function renderShiftCard(dk, ca, icon) {
+  const d = nvData[dk.s1];
+  const s = d && d[ca];
+  const flDay = flData[dk.s2];
+  const caShiftN = ca==='CA 1'?1:ca==='CA 2'?2:3;
+  const fl = flDay && flDay.slots && flDay.slots.filter(x => x.shift === caShiftN);
+  const caColor = ca==='CA 1'?'var(--ca1)':ca==='CA 2'?'var(--ca2)':'var(--ca3)';
+  const caBg    = ca==='CA 1'?'var(--orange-bg)':ca==='CA 2'?'var(--blue-bg)':'var(--purple-bg)';
+
+  let nvHtml = '', flHtml = '';
+  if (s) {
+    nvHtml = `
+    <div class="shift-section">
+      <h4>👷 NV Phân Hàng</h4>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-v ok" style="font-size:24px">${fmt(s.diLam)}</div><div class="kpi-l">Đi làm</div></div>
+        <div class="kpi"><div class="kpi-v ${s.nghi?'bad':''}" style="font-size:24px">${s.nghi||'—'}</div><div class="kpi-l">Nghỉ</div></div>
+      </div>
+    </div>`;
+  }
+  if (fl && fl.length) {
+    let totYC=0, totTT=0;
+    fl.forEach(x=>{totYC+=x.yc;totTT+=x.tt;});
+    const r = totYC ? Math.round(totTT/totYC*100) : 0;
+    flHtml = `
+    <div class="shift-section">
+      <h4>⚡ Freelancer</h4>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-v" style="font-size:24px;color:var(--orange)">${fmt(totYC)}</div><div class="kpi-l">Yêu cầu</div></div>
+        <div class="kpi"><div class="kpi-v" style="font-size:24px;color:${rColor(r)}">${fmt(totTT)}</div><div class="kpi-l">Thực tế</div></div>
+        <div class="kpi"><div class="kpi-v ${rClass(r)}" style="font-size:24px">${r}%</div><div class="kpi-l">Đáp ứng</div></div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:${caBg};font-size:20px">${icon}</div>
+      <div><div class="card-ttl" style="color:${caColor}">${ca} — Hôm nay</div></div>
+    </div>
+    ${nvHtml || flHtml
+      ? nvHtml + flHtml
+      : '<div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu ca này</div>'
+    }
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// FETCH CSV — direct browser fetch → allorigins.win fallback
+// ═══════════════════════════════════════════════
+function fetchCSV(url, cb) {
+  const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+
+  function doXHR(target, timeout, fallback) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', target, true);
+    xhr.timeout = timeout;
+    xhr.onload = () => {
+      const txt = xhr.responseText || '';
+      if (xhr.status === 200 && txt.length > 50 && !txt.trimStart().startsWith('<')) {
+        cb(null, txt);
+      } else if (fallback) {
+        doXHR(fallback, 25000, null);
+      } else {
+        cb(new Error('Empty / non-CSV response'));
+      }
+    };
+    xhr.onerror = xhr.ontimeout = () => {
+      if (fallback) doXHR(fallback, 25000, null);
+      else cb(new Error('Network/timeout'));
+    };
+    xhr.send();
+  }
+
+  doXHR(url, 15000, proxy);
+}
+
+// ═══════════════════════════════════════════════
+// PARSE SHEETS
+// ═══════════════════════════════════════════════
+function parseCSV(text) {
+  const rows = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const row = []; let inQ = false, cur = '';
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    row.push(cur.trim()); rows.push(row);
+  }
+  return rows;
+}
+
+function parseSheet1(csv) {
+  const rows = parseCSV(csv).slice(1); // skip header
+  const out = {};
+  for (const r of rows) {
+    const date = r[0], ca = r[1], bp = r[2];
+    if (!date || !ca || !bp) continue;
+    const diLam = parseInt(r[3]) || 0;
+    const nghi  = parseInt(r[4]) || 0;
+    if (!out[date]) out[date] = {};
+    if (!out[date][ca]) out[date][ca] = { diLam:0, nghi:0, dept:{} };
+    out[date][ca].diLam += diLam;
+    out[date][ca].nghi  += nghi;
+    out[date][ca].dept[bp] = { diLam, nghi };
+  }
+  return out;
+}
+
+function getShift(slot) {
+  if (!slot) return 0;
+  const h = parseInt(slot.split(':')[0]); if (isNaN(h)) return 0;
+  if (h >= 6 && h <= 13) return 1;
+  if (h >= 14 && h <= 19) return 2;
+  return 3;
+}
+
+function parseSheet2(csv) {
+  const rows = parseCSV(csv).slice(2); // skip 2 header rows
+  const out = {};
+  for (const r of rows) {
+    const date = r[0]; if (!date) continue;
+    const slot  = r[1];
+    const yc    = parseInt(r[2])  || 0;   // kho requirement
+    const dk    = parseInt(r[19]) || 0;   // planned total
+    const tt    = parseInt(r[29]) || 0;   // actual total
+    const rate  = yc > 0 ? (tt/yc)*100 : 0;
+    if (!out[date]) out[date] = { summary:null, slots:[] };
+    if (!slot) {
+      out[date].summary = { yc, dk, tt, rate };
+    } else {
+      out[date].slots.push({ slot, yc, dk, tt, rate, shift: getShift(slot) });
+    }
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════
+// LOAD SHEETS
+// ═══════════════════════════════════════════════
+function loadSheets() {
+  if (sheetsLoading) return;
+  sheetsLoading = true;
+  setStatus('Đang tải Google Sheets...', '');
+  let done1=false, done2=false;
+
+  const tryRender = () => {
+    if (!done1 || !done2) return;
+    sheetsLoading = false;
+    const ok = Object.keys(nvData).length > 0 || Object.keys(flData).length > 0;
+    const mbTxt = mbVol ? ' · Metabase OK' : '';
+    setStatus(ok ? `✅ Sheets OK${mbTxt}` : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
+    render();
+  };
+
+  fetchCSV(SHEET1, (err, txt) => {
+    if (!err) {
+      nvData = parseSheet1(txt);
+    }
+    done1 = true; tryRender();
+  });
+  fetchCSV(SHEET2, (err, txt) => {
+    if (!err) {
+      flData = parseSheet2(txt);
+    }
+    done2 = true; tryRender();
+  });
+}
+
+// ═══════════════════════════════════════════════
+// METABASE
+// ═══════════════════════════════════════════════
+function showMbStatus(msg, cls) {
+  const el = document.getElementById('mb-status');
+  if (!el) return;
+  el.style.display = 'block';
+  el.className = 'mb-status ' + (cls === 'ok' ? 'ok' : 'err');
+  el.textContent = msg;
+}
+
+function doMbLogin() {
+  const token = (document.getElementById('mb-token').value||'').trim();
+  if (!token) { showMbStatus('❌ Vui lòng dán token trước', 'err'); return; }
+  const btn = document.getElementById('mb-btn');
+  btn.disabled = true; btn.textContent = '⏳ Đang xác thực...';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `${MB_PROXY}/api/user/current`, true);
+  xhr.setRequestHeader('X-Metabase-Session', token);
+  xhr.timeout = 10000;
+  xhr.onload = () => {
+    btn.disabled = false; btn.textContent = 'Kết nối';
+    if (xhr.status === 200) {
+      mbToken = token;
+      sessionStorage.setItem('mb_session', token);
+      showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
+      document.getElementById('mb-panel').style.display = 'none';
+      loadMbVol();
+    } else {
+      showMbStatus('❌ Token không hợp lệ (HTTP ' + xhr.status + '). Thử lấy token mới.', 'err');
+    }
+  };
+  xhr.onerror = xhr.ontimeout = () => {
+    btn.disabled = false; btn.textContent = 'Kết nối';
+    showMbStatus('❌ Không kết nối được proxy (proxy chưa chạy?). Chạy proxy_server.py trước.', 'err');
+  };
+  xhr.send();
+}
+
+function doSkip() {
+  mbSkipped = true;
+  document.getElementById('mb-panel').style.display = 'none';
+  render();
+}
+
+function loadMbVol() {
+  if (!mbToken) return;
+  const today = new Date(), yest = new Date(today);
+  yest.setDate(today.getDate()-1);
+  const yestIso = isoDate(yest);
+
+  setStatus('Đang tải Metabase...', '');
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `${MB_PROXY}/api/dashboard/${MB_DASH}`, true);
+  xhr.setRequestHeader('X-Metabase-Session', mbToken);
+  xhr.timeout = 12000;
+  xhr.onload = () => {
+    if (xhr.status !== 200) {
+      if (xhr.status === 401 || xhr.status === 403) {
+        sessionStorage.removeItem('mb_session');
+        mbToken = '';
+        document.getElementById('mb-panel').style.display = 'block';
+        showMbStatus('⚠️ Token hết hạn. Vui lòng kết nối lại.', 'err');
+      }
+      setStatus('⚠️ Sheets OK · Metabase lỗi (' + xhr.status + ')', 'r');
+      return;
+    }
+    try {
+      const dash = JSON.parse(xhr.responseText);
+      const cards = (dash.ordered_cards || dash.dashcards || []).filter(c => c.card_id && c.card);
+      const params = buildParams(dash.parameters || [], yestIso);
+      queryCards(cards, params);
+    } catch(e) {
+      console.error('[MB] Parse error:', e);
+      setStatus('⚠️ Sheets OK · Metabase: lỗi parse', 'r');
+    }
+  };
+  xhr.onerror = xhr.ontimeout = () => setStatus('⚠️ Sheets OK · Metabase timeout', 'r');
+  xhr.send();
+}
+
+function buildParams(dashParams, yestIso) {
+  const find = (...keys) => dashParams.find(p =>
+    keys.some(k => (p.slug||'').toLowerCase().includes(k)||(p.name||'').toLowerCase().includes(k)));
+  const pDate = find('ngày','ngay','date','day');
+  const pKho  = find('kho','warehouse');
+  const pXN   = find('xuất','nhập','xuat','nhap','direction','in_out');
+  if (pXN) mbXNSlug = pXN.slug || 'in_out';
+  console.log('[MB] Params — date:', pDate?.slug, 'kho:', pKho?.slug, 'xn:', pXN?.slug);
+  const params = [];
+  if (pDate) params.push({type:'date/range', value:`${yestIso}~${yestIso}`, id:pDate.id});
+  if (pKho)  params.push({type:'string/=',   value:['Kho Trung Chuyển Hà Nội 02'],  id:pKho.id});
+  if (pXN)   params.push({type:'string/=',   value:['Nhập'],                          id:pXN.id});
+  return params;
+}
+
+function queryCards(cards, params) {
+  // Ưu tiên "số đơn" > "sản lượng" (không xu hướng, không khối lượng) > "sản lượng xu hướng" > còn lại
+  // Loại hẳn "khối lượng" / "kg" / "weight" cards
+  const priority = nm => {
+    const n = nm.toLowerCase();
+    if (n.includes('khối lượng') || n.includes('(kg)') || n.includes('weight')) return 999;
+    if (n.includes('số đơn') || n.includes('tổng đơn')) return 0;
+    if (n.includes('sản lượng') && !n.includes('xu hướng')) return 1;
+    if (n.includes('sản lượng')) return 2;
+    if (n.includes('nhập') || n.includes('xuất nhập')) return 3;
+    return 99;
+  };
+
+  const sorted  = [...cards].sort((a,b) => priority(a.card.name||'') - priority(b.card.name||''));
+  const toQuery = sorted.filter(c => priority(c.card.name||'') < 999).slice(0, 10);
+
+  let pending = toQuery.length, results = [];
+  if (!toQuery.length) { showMbStatus('❌ Dashboard không có card phù hợp', 'err'); return; }
+
+  toQuery.forEach(dc => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${MB_PROXY}/api/dashboard/${MB_DASH}/dashcard/${dc.id}/card/${dc.card_id}/query`, true);
+    xhr.setRequestHeader('Content-Type','application/json');
+    xhr.setRequestHeader('X-Metabase-Session', mbToken);
+    xhr.timeout = 18000;
+
+    const done = () => { pending--; if (pending === 0) pickBestCard(results); };
+
+    xhr.onload = () => {
+      try {
+        const qd = JSON.parse(xhr.responseText);
+        const rows = qd?.data?.rows || [];
+        if (!rows.length) { done(); return; }
+        const cols = (qd?.data?.cols||[]).map(c=>(c.display_name||c.name||'').toLowerCase());
+
+        // Chọn cột metric: cột số có SUM LỚN NHẤT (tránh nhầm count vs volume)
+        const isDateCol = c => ['date','ngày','tháng','tuần','time','created','week','month'].some(k=>c.includes(k));
+        const numericInfo = cols.map((c,i) => ({i, c, sum: rows.reduce((s,r)=>s+(parseFloat(r[i])||0),0)}))
+          .filter(x => !isDateCol(x.c) && x.sum > 0);
+        numericInfo.sort((a,b) => b.sum - a.sum);
+        const numCI = numericInfo.length > 0 ? numericInfo[0].i : -1;
+
+        // Cột phân loại hàng: Nhỏ / Công Kênh / Nặng
+        const typCI = cols.findIndex(c =>
+          ['loại hàng','cargo','type','loại','hang type','cat'].some(k=>c.includes(k)));
+
+        let totSl=0, sm=0, ck=0, hv=0;
+        rows.forEach(r => {
+          const v = parseFloat(r[numCI<0?0:numCI])||0;
+          totSl += v;
+          if (typCI>=0) {
+            const t = String(r[typCI]||'').toLowerCase();
+            if      (t.includes('nhỏ')||t.includes('nho')||t.includes('normal')||t.includes('small')) sm+=v;
+            else if (t.includes('công kênh')||t.includes('cong kenh')||t.includes('cồng')||t.includes('bulky')||t.includes('oversize')) ck+=v;
+            else if (t.includes('nặng')||t.includes('nang')||t.includes('heavy')||t.includes('freight')) hv+=v;
+            else sm+=v;
+          }
+        });
+        console.log(`[MB] "${dc.card.name}": rows=${rows.length} totSl=${Math.round(totSl)} numCI=${numCI}(${cols[numCI]}) sm=${Math.round(sm)} ck=${Math.round(ck)} hv=${Math.round(hv)}`);
+        results.push({name:dc.card.name, totSl, sm, ck, hv, numRows:rows.length});
+      } catch(e) { console.log('[MB] parse err:', dc.card.name, e.message); }
+      done();
+    };
+    xhr.onerror = xhr.ontimeout = () => { console.log(`[MB] "${dc.card?.name}" timeout/err`); done(); };
+    xhr.send(JSON.stringify({parameters:params}));
+  });
+}
+
+function pickBestCard(results) {
+  const valid = results.filter(r => r.totSl > 0);
+  console.log('[MB] Results:', valid.map(r=>`"${r.name}": ${Math.round(r.totSl)} (${r.numRows}r)`));
+
+  if (!valid.length) {
+    showMbStatus('⚠️ Kết nối OK nhưng data = 0. Xem Console.', 'err');
+    return;
+  }
+
+  // 1. KPI cards (1-5 rows, giá trị hợp lý 500-10M) → daily aggregate count
+  const kpiCards  = valid.filter(r => r.numRows <= 5  && r.totSl >= 500 && r.totSl <= 10_000_000);
+  // 2. Sản lượng charts (không xu hướng)
+  const slCharts  = valid.filter(r => r.numRows > 5   && !((r.name||'').toLowerCase().includes('xu hướng')) && r.totSl >= 500);
+  // 3. Xu hướng trend charts (fallback)
+  const trendCards= valid.filter(r => (r.name||'').toLowerCase().includes('xu hướng'));
+
+  let pool;
+  if      (kpiCards.length)   { pool = kpiCards.sort((a,b)=>b.totSl-a.totSl);   console.log('[MB] Chọn KPI cards');    }
+  else if (slCharts.length)   { pool = slCharts.sort((a,b)=>b.totSl-a.totSl);   console.log('[MB] Chọn sl charts');    }
+  else if (trendCards.length) { pool = trendCards.sort((a,b)=>b.totSl-a.totSl); console.log('[MB] Fallback xu hướng'); }
+  else                        { pool = valid.sort((a,b)=>b.totSl-a.totSl); }
+
+  const best = pool[0];
+  mbVol = {
+    total:    Math.round(best.totSl),
+    sm:       Math.round(best.sm),
+    ck:       Math.round(best.ck),
+    hv:       Math.round(best.hv),
+    cardName: best.name,
+  };
+  document.getElementById('mb-panel').style.display = 'none';
+  const mbTxt = Object.keys(nvData).length > 0 ? '✅ Sheets OK · Metabase OK' : '✅ Metabase OK';
+  setStatus(`${mbTxt} (${best.name})`, 'g');
+  render();
+}
+
+// ═══════════════════════════════════════════════
+// REFRESH + AUTO
+// ═══════════════════════════════════════════════
+function doRefresh() {
+  const btn = document.getElementById('btn-refresh');
+  btn.disabled = true; btn.textContent = '⏳';
+  sheetsLoading = false;
+  loadSheets();
+  if (mbToken) loadMbVol();
+  setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 Làm mới'; }, 5000);
+}
+
+setInterval(() => {
+  sheetsLoading = false;
+  loadSheets();
+  if (mbToken) loadMbVol();
+}, 5 * 60 * 1000);
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+(function init() {
+  const saved = sessionStorage.getItem('mb_session');
+
+  render();
+  loadSheets();
+
+  if (saved) {
+    const vxhr = new XMLHttpRequest();
+    vxhr.open('GET', `${MB_PROXY}/api/user/current`, true);
+    vxhr.setRequestHeader('X-Metabase-Session', saved);
+    vxhr.timeout = 8000;
+    vxhr.onload = () => {
+      if (vxhr.status === 200) {
+        mbToken = saved;
+        document.getElementById('mb-panel').style.display = 'none';
+        loadMbVol();
+      } else {
+        sessionStorage.removeItem('mb_session');
+        mbToken = '';
+        console.log('[MB] Saved token expired');
+      }
+    };
+    vxhr.onerror = vxhr.ontimeout = () => console.log('[MB] Proxy offline, showing panel');
+    vxhr.send();
+  }
+})();
+</script>
+</body>
+</html>
