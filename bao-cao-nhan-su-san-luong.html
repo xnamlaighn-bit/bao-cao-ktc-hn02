@@ -341,6 +341,7 @@
     .card-footer { font-size: 10px; color: var(--t3); margin-top: 12px; display: flex; align-items: center; gap: 4px; }
     .card-footer::before { content: '●'; color: var(--orange); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -573,6 +574,16 @@ function render() {
 
   let html = '';
 
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(vd);
+    d.setDate(vd.getDate() - i);
+    dates.push(d);
+  }
+  const pad = n => String(n).padStart(2,'0');
+  const dStart = dates[0], dEnd = dates[6];
+  const dateRangeDisp = `${pad(dStart.getDate())}/${pad(dStart.getMonth()+1)} - ${pad(dEnd.getDate())}/${pad(dEnd.getMonth()+1)}`;
+
   html += `
   <div class="section-hdr">
     <div class="section-hdr-left">
@@ -585,6 +596,19 @@ function render() {
     ${renderNVCard(vdK.s1)}
     ${renderFLCard(vdK.s2)}
     ${renderVolCard(vdK)}
+  </div>
+  
+  <div class="card" style="margin-top: 16px;">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:var(--orange-bg);font-size:20px">📈</div>
+      <div>
+        <div class="card-ttl">Xu Hướng Đáp Ứng Freelancer (FL) — 7 ngày gần nhất</div>
+        <div class="card-sub">Chi tiết số lượng yêu cầu, thực tế và tỉ lệ đáp ứng (${dateRangeDisp})</div>
+      </div>
+    </div>
+    <div style="position: relative; height: 280px; width: 100%; margin-top: 16px;">
+      <canvas id="flTrendChart"></canvas>
+    </div>
   </div>`;
 
   if (showCa1 || showCa2 || showCa3) {
@@ -605,6 +629,7 @@ function render() {
   }
 
   document.getElementById('main').innerHTML = html;
+  renderFLTrendChart(vd);
 }
 
 // ═══════════════════════════════════════════════
@@ -1156,6 +1181,150 @@ setInterval(() => {
   loadSheets();
   if (mbToken) loadMbVol();
 }, 5 * 60 * 1000);
+
+let flChartInstance = null;
+
+function renderFLTrendChart(vd) {
+  const ctx = document.getElementById('flTrendChart');
+  if (!ctx) return;
+
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(vd);
+    d.setDate(vd.getDate() - i);
+    dates.push(d);
+  }
+
+  const labels = [];
+  const yValues = []; // Requested (yc)
+  const tValues = []; // Actual (tt)
+  const rValues = []; // Fulfillment rate (rate)
+
+  dates.forEach(d => {
+    const k = dateKeys(d);
+    const pad = n => String(n).padStart(2,'0');
+    labels.push(`${pad(d.getDate())}/${pad(d.getMonth()+1)}`);
+
+    const data = flData[k.s2];
+    if (data && data.summary) {
+      yValues.push(data.summary.yc || 0);
+      tValues.push(data.summary.tt || 0);
+      rValues.push(data.summary.rate || 0);
+    } else {
+      yValues.push(0);
+      tValues.push(0);
+      rValues.push(0);
+    }
+  });
+
+  if (flChartInstance) {
+    flChartInstance.destroy();
+  }
+
+  flChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Yêu cầu (người)',
+          data: yValues,
+          backgroundColor: '#E8EAED',
+          borderRadius: 4,
+          order: 2,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Thực tế (người)',
+          data: tValues,
+          backgroundColor: '#FF8533',
+          borderRadius: 4,
+          order: 3,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Tỉ lệ đáp ứng (%)',
+          data: rValues,
+          type: 'line',
+          borderColor: '#007ED4',
+          borderWidth: 3,
+          pointBackgroundColor: '#007ED4',
+          pointRadius: 4,
+          fill: false,
+          order: 1,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: { family: 'Inter', size: 12 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) label += ': ';
+              if (context.parsed.y !== null) {
+                label += context.dataset.yAxisID === 'y1' ? context.parsed.y.toFixed(1) + '%' : context.parsed.y;
+              }
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Số lượng (người)',
+            font: { family: 'Inter', size: 11, weight: 'bold' }
+          },
+          grid: {
+            color: '#E8EAED'
+          }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          min: 0,
+          max: 150,
+          title: {
+            display: true,
+            text: 'Tỉ lệ (%)',
+            font: { family: 'Inter', size: 11, weight: 'bold' }
+          },
+          grid: {
+            drawOnChartArea: false
+          },
+          ticks: {
+            callback: function(value) {
+              return value + '%';
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: { family: 'Inter', size: 11 }
+          }
+        }
+      }
+    }
+  });
+}
 
 // ═══════════════════════════════════════════════
 // INIT
