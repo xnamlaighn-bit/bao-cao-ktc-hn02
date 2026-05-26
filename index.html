@@ -1061,20 +1061,23 @@ function buildParams(dashParams, vdIso) {
 
 function queryCards(cards, params) {
   // Ưu tiên "số đơn" > "sản lượng" (không xu hướng, không khối lượng) > "sản lượng xu hướng" > còn lại
-  // Loại hẳn "khối lượng" / "kg" / "weight" cards
-  const priority = nm => {
-    const n = nm.toLowerCase();
-    if (n.includes('khối lượng') || n.includes('(kg)') || n.includes('weight')) return 999;
-    if (n.includes('chi tiết') || n.includes('chiet tiet') || n.includes('detail') || n.includes('raw') || n.includes('danh sách') || n.includes('danh sach') || n.includes('list')) return 999;
-    if (n.includes('số đơn') || n.includes('tổng đơn')) return 0;
-    if (n.includes('sản lượng') && !n.includes('xu hướng')) return 1;
-    if (n.includes('sản lượng')) return 2;
-    if (n.includes('nhập') || n.includes('xuất nhập')) return 3;
-    return 99;
-  };
+const cardPriority = nm => {
+  const n = nm.toLowerCase();
+  if (n.includes('khối lượng') || n.includes('(kg)') || n.includes('weight')) return 999;
+  if (n.includes('chi tiết') || n.includes('chiet tiet') || n.includes('detail') || n.includes('raw') || n.includes('danh sách') || n.includes('danh sach') || n.includes('list')) return 999;
+  if (n.includes('số đơn') || n.includes('tổng đơn')) return 0;
+  if (n.includes('sản lượng') && !n.includes('xu hướng')) return 1;
+  if (n.includes('sản lượng')) return 2;
+  if (n.includes('nhập') || n.includes('xuất nhập')) return 3;
+  return 99;
+};
 
-  const sorted  = [...cards].sort((a,b) => priority(a.card.name||'') - priority(b.card.name||''));
-  const toQuery = sorted.filter(c => priority(c.card.name||'') < 999).slice(0, 10);
+function queryCards(cards, params) {
+  // Ưu tiên "số đơn" > "sản lượng" (không xu hướng, không khối lượng) > "sản lượng xu hướng" > còn lại
+  // Loại hẳn "khối lượng" / "kg" / "weight" cards
+
+  const sorted  = [...cards].sort((a,b) => cardPriority(a.card.name||'') - cardPriority(b.card.name||''));
+  const toQuery = sorted.filter(c => cardPriority(c.card.name||'') < 999).slice(0, 10);
 
   let pending = toQuery.length, results = [];
   if (!toQuery.length) { showMbStatus('❌ Dashboard không có card phù hợp', 'err'); return; }
@@ -1162,8 +1165,8 @@ function pickBestCard(results) {
   const splitPool = valid.filter(hasSplitData);
   if (splitPool.length) {
     pool = splitPool.sort((a,b) => {
-      const pA = priority(a.name || '');
-      const pB = priority(b.name || '');
+      const pA = cardPriority(a.name || '');
+      const pB = cardPriority(b.name || '');
       if (pA !== pB) return pA - pB;
       return b.totSl - a.totSl;
     });
