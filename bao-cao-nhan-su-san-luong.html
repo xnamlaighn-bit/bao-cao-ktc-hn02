@@ -983,6 +983,7 @@ function doMbLogin() {
   const xhr = new XMLHttpRequest();
   xhr.open('GET', `${MB_PROXY}/api/user/current`, true);
   xhr.setRequestHeader('X-Metabase-Session', token);
+  xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
   xhr.timeout = 10000;
   xhr.onload = () => {
     btn.disabled = false; btn.textContent = 'Kết nối';
@@ -1019,6 +1020,7 @@ function loadMbVol() {
   const xhr = new XMLHttpRequest();
   xhr.open('GET', `${MB_PROXY}/api/dashboard/${MB_DASH}`, true);
   xhr.setRequestHeader('X-Metabase-Session', mbToken);
+  xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
   xhr.timeout = 12000;
   xhr.onload = () => {
     if (xhr.status !== 200) {
@@ -1084,6 +1086,7 @@ function queryCards(cards, params) {
     xhr.open('POST', `${MB_PROXY}/api/dashboard/${MB_DASH}/dashcard/${dc.id}/card/${dc.card_id}/query`, true);
     xhr.setRequestHeader('Content-Type','application/json');
     xhr.setRequestHeader('X-Metabase-Session', mbToken);
+    xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
     xhr.timeout = 18000;
 
     const done = () => { pending--; if (pending === 0) pickBestCard(results); };
@@ -1339,6 +1342,7 @@ function renderFLTrendChart(vd) {
     const vxhr = new XMLHttpRequest();
     vxhr.open('GET', `${MB_PROXY}/api/user/current`, true);
     vxhr.setRequestHeader('X-Metabase-Session', saved);
+    vxhr.setRequestHeader('ngrok-skip-browser-warning', '1');
     vxhr.timeout = 8000;
     vxhr.onload = () => {
       if (vxhr.status === 200) {

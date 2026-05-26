@@ -126,7 +126,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin',  '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers',
-                         'Content-Type, X-Metabase-Session')
+                         'Content-Type, X-Metabase-Session, ngrok-skip-browser-warning')
 
     def log_message(self, fmt, *args):
         if not self.path.startswith(PROXY):
