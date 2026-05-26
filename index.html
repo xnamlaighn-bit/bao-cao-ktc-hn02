@@ -1067,6 +1067,7 @@ function queryCards(cards, params) {
   const priority = nm => {
     const n = nm.toLowerCase();
     if (n.includes('khối lượng') || n.includes('(kg)') || n.includes('weight')) return 999;
+    if (n.includes('chi tiết') || n.includes('chiet tiet') || n.includes('detail') || n.includes('raw') || n.includes('danh sách') || n.includes('danh sach') || n.includes('list')) return 999;
     if (n.includes('số đơn') || n.includes('tổng đơn')) return 0;
     if (n.includes('sản lượng') && !n.includes('xu hướng')) return 1;
     if (n.includes('sản lượng')) return 2;
