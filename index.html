@@ -433,7 +433,7 @@ let MB_PROXY = (function() {
   if (paramProxy) return paramProxy.replace(/\/$/, ''); // remove trailing slash if any
   
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  return isLocal ? '/mb-proxy' : 'http://localhost:8888/mb-proxy';
+  return isLocal ? '/mb-proxy' : 'https://bao-cao-ktc-hn02.onrender.com/mb-proxy';
 })();
 
 // ═══════════════════════════════════════════════
