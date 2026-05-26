@@ -426,7 +426,14 @@ const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZ
 const SHEET2 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=1455372314';
 const MB_HOST  = 'https://data-bi.ghn.vn';
 const MB_DASH  = 143;
-const MB_PROXY = '/mb-proxy';
+let MB_PROXY = (function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramProxy = urlParams.get('proxy');
+  if (paramProxy) return paramProxy.replace(/\/$/, ''); // remove trailing slash if any
+  
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  return isLocal ? '/mb-proxy' : 'http://localhost:8888/mb-proxy';
+})();
 
 // ═══════════════════════════════════════════════
 // STATE
