@@ -765,24 +765,6 @@ function renderVolCard(dk) {
     ${badge}
     <div class="vol-lbl">Tổng nhập [Nhập]</div>
     <div class="vol-total">${fmt(mbVol.total)}</div>
-    ${hasSplit ? `
-    <div class="vol-split">
-      <div class="vol-box">
-        <div class="vol-bv" style="color:var(--blue)">${fmt(mbVol.sm)}</div>
-        <div class="vol-bl">📦 Nhỏ</div>
-        <div class="vol-pct">${pct(mbVol.sm)}%</div>
-      </div>
-      <div class="vol-box">
-        <div class="vol-bv" style="color:var(--orange)">${fmt(mbVol.ck)}</div>
-        <div class="vol-bl">🚐 CK</div>
-        <div class="vol-pct">${pct(mbVol.ck)}%</div>
-      </div>
-      <div class="vol-box">
-        <div class="vol-bv" style="color:var(--purple)">${fmt(mbVol.hv)}</div>
-        <div class="vol-bl">⚖️ Nặng</div>
-        <div class="vol-pct">${pct(mbVol.hv)}%</div>
-      </div>
-    </div>` : ''}
     <div class="card-footer">Metabase · Cập nhật lúc 09:00 ngày N (dữ liệu N-1)</div>
     <a href="${mbLink}" target="_blank" class="btn-link">📊 Mở Metabase Dashboard</a>
   </div>`;
