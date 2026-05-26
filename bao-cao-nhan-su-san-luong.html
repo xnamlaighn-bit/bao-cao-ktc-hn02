@@ -989,7 +989,7 @@ function doMbLogin() {
     btn.disabled = false; btn.textContent = 'Kết nối';
     if (xhr.status === 200) {
       mbToken = token;
-      sessionStorage.setItem('mb_session', token);
+      localStorage.setItem('mb_session', token);
       showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
       document.getElementById('mb-panel').style.display = 'none';
       loadMbVol();
@@ -1025,7 +1025,7 @@ function loadMbVol() {
   xhr.onload = () => {
     if (xhr.status !== 200) {
       if (xhr.status === 401 || xhr.status === 403) {
-        sessionStorage.removeItem('mb_session');
+        localStorage.removeItem('mb_session');
         mbToken = '';
         document.getElementById('mb-panel').style.display = 'block';
         showMbStatus('⚠️ Token hết hạn. Vui lòng kết nối lại.', 'err');
@@ -1333,7 +1333,7 @@ function renderFLTrendChart(vd) {
 // INIT
 // ═══════════════════════════════════════════════
 (function init() {
-  const saved = sessionStorage.getItem('mb_session');
+  const saved = localStorage.getItem('mb_session');
 
   render();
   loadSheets();
@@ -1350,7 +1350,7 @@ function renderFLTrendChart(vd) {
         document.getElementById('mb-panel').style.display = 'none';
         loadMbVol();
       } else {
-        sessionStorage.removeItem('mb_session');
+        localStorage.removeItem('mb_session');
         mbToken = '';
         console.log('[MB] Saved token expired');
       }
