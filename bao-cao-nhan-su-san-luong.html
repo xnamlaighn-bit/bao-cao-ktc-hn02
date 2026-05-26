@@ -991,7 +991,6 @@ function doMbLogin() {
       mbToken = token;
       localStorage.setItem('mb_session', token);
       showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
-      document.getElementById('mb-panel').style.display = 'none';
       loadMbVol();
     } else {
       showMbStatus('❌ Token không hợp lệ (HTTP ' + xhr.status + '). Thử lấy token mới.', 'err');
@@ -1135,8 +1134,15 @@ function pickBestCard(results) {
   const valid = results.filter(r => r.totSl > 0);
   console.log('[MB] Results:', valid.map(r=>`"${r.name}": ${Math.round(r.totSl)} (${r.numRows}r)`));
 
+  if (!results.length) {
+    showMbStatus('❌ Không thể tải dữ liệu từ Metabase. Hãy kiểm tra proxy hoặc token.', 'err');
+    document.getElementById('mb-panel').style.display = 'block';
+    return;
+  }
+
   if (!valid.length) {
-    showMbStatus('⚠️ Kết nối OK nhưng data = 0. Xem Console.', 'err');
+    showMbStatus('⚠️ Kết nối thành công nhưng sản lượng bằng 0.', 'err');
+    document.getElementById('mb-panel').style.display = 'block';
     return;
   }
 
@@ -1352,7 +1358,6 @@ function renderFLTrendChart(vd) {
     vxhr.onload = () => {
       if (vxhr.status === 200) {
         mbToken = saved;
-        document.getElementById('mb-panel').style.display = 'none';
         loadMbVol();
       } else {
         localStorage.removeItem('mb_session');
