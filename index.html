@@ -1011,9 +1011,7 @@ function doSkip() {
 
 function loadMbVol() {
   if (!mbToken) return;
-  const today = new Date(), yest = new Date(today);
-  yest.setDate(today.getDate()-1);
-  const yestIso = isoDate(yest);
+  const vdIso = isoDate(viewDate);
 
   setStatus('Đang tải Metabase...', '');
   const xhr = new XMLHttpRequest();
@@ -1035,7 +1033,7 @@ function loadMbVol() {
     try {
       const dash = JSON.parse(xhr.responseText);
       const cards = (dash.ordered_cards || dash.dashcards || []).filter(c => c.card_id && c.card);
-      const params = buildParams(dash.parameters || [], yestIso);
+      const params = buildParams(dash.parameters || [], vdIso);
       queryCards(cards, params);
     } catch(e) {
       console.error('[MB] Parse error:', e);
@@ -1046,7 +1044,7 @@ function loadMbVol() {
   xhr.send();
 }
 
-function buildParams(dashParams, yestIso) {
+function buildParams(dashParams, vdIso) {
   const find = (...keys) => dashParams.find(p =>
     keys.some(k => (p.slug||'').toLowerCase().includes(k)||(p.name||'').toLowerCase().includes(k)));
   const pDate = find('ngày','ngay','date','day');
@@ -1055,7 +1053,7 @@ function buildParams(dashParams, yestIso) {
   if (pXN) mbXNSlug = pXN.slug || 'in_out';
   console.log('[MB] Params — date:', pDate?.slug, 'kho:', pKho?.slug, 'xn:', pXN?.slug);
   const params = [];
-  if (pDate) params.push({type:'date/range', value:`${yestIso}~${yestIso}`, id:pDate.id});
+  if (pDate) params.push({type:'date/range', value:`${vdIso}~${vdIso}`, id:pDate.id});
   if (pKho)  params.push({type:'string/=',   value:['Kho Trung Chuyển Hà Nội 02'],  id:pKho.id});
   if (pXN)   params.push({type:'string/=',   value:['Nhập'],                          id:pXN.id});
   return params;
@@ -1163,7 +1161,12 @@ function pickBestCard(results) {
   // Ưu tiên cao nhất cho card có dữ liệu phân tách loại hàng
   const splitPool = valid.filter(hasSplitData);
   if (splitPool.length) {
-    pool = splitPool.sort((a,b)=>b.totSl-a.totSl);
+    pool = splitPool.sort((a,b) => {
+      const pA = priority(a.name || '');
+      const pB = priority(b.name || '');
+      if (pA !== pB) return pA - pB;
+      return b.totSl - a.totSl;
+    });
     console.log('[MB] Chọn card có phân loại hàng:', pool[0].name);
   } else if (kpiCards.length) {
     pool = kpiCards.sort((a,b)=>b.totSl-a.totSl);
