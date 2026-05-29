@@ -821,7 +821,9 @@ function renderShiftCard(dk, ca, icon) {
 }
 
 // ═══════════════════════════════════════════════
-// FETCH CSV — Render gs-proxy (primary, 55s) → allorigins fallback
+// FETCH CSV — direct (CORS=* on /export) → Render gs-proxy → allorigins
+// Google Sheets /export returns Access-Control-Allow-Origin: *
+// so browser can fetch directly without any proxy!
 // ═══════════════════════════════════════════════
 const GS_PROXY_RENDER = 'https://bao-cao-ktc-hn02.onrender.com/gs-proxy?url=';
 
@@ -829,27 +831,22 @@ function fetchCSV(url, cb) {
   const renderProxy     = GS_PROXY_RENDER + encodeURIComponent(url);
   const alloriginsProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
 
-  // Check if running locally → use local proxy_server.py directly
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const localProxy = '/gs-proxy?url=' + encodeURIComponent(url);
 
-  // Timeouts: local=10s, Render=55s (cold start ~34s), allorigins=20s
+  // Try direct first (CORS=* on Google export URLs), then fallbacks
   const queue = isLocal
     ? [{ url: localProxy,     timeout: 10000 },
-       { url: renderProxy,    timeout: 55000 },
-       { url: alloriginsProxy,timeout: 20000 }]
-    : [{ url: renderProxy,    timeout: 55000 },
-       { url: alloriginsProxy,timeout: 20000 }];
+       { url: url,            timeout: 12000 },
+       { url: renderProxy,    timeout: 55000 }]
+    : [{ url: url,            timeout: 12000 },  // direct fetch — fastest!
+       { url: renderProxy,    timeout: 55000 },  // Render fallback (~34s cold start)
+       { url: alloriginsProxy,timeout: 20000 }]; // allorigins last resort
 
   function tryNext(remaining) {
-    if (!remaining.length) { cb(new Error('Tất cả proxy thất bại')); return; }
+    if (!remaining.length) { cb(new Error('Không tải được dữ liệu')); return; }
     const { url: target, timeout } = remaining[0];
     const rest = remaining.slice(1);
-
-    // Show "đang khởi động server" hint when using Render proxy
-    if (target.includes('onrender.com')) {
-      setStatus('🔄 Đang khởi động server dữ liệu (~30s lần đầu)...', '');
-    }
 
     const xhr = new XMLHttpRequest();
     xhr.open('GET', target, true);
@@ -859,12 +856,12 @@ function fetchCSV(url, cb) {
       if (xhr.status === 200 && txt.length > 50 && !txt.trimStart().startsWith('<')) {
         cb(null, txt);
       } else {
-        console.warn('[FETCH] proxy fail, thử tiếp:', rest[0]?.url?.slice(0,50));
+        console.warn('[FETCH] fail, thử tiếp:', rest[0]?.url?.slice(0, 50));
         tryNext(rest);
       }
     };
     xhr.onerror = xhr.ontimeout = () => {
-      console.warn('[FETCH] timeout/err, thử tiếp:', rest[0]?.url?.slice(0,50));
+      console.warn('[FETCH] timeout/err, thử tiếp:', rest[0]?.url?.slice(0, 50));
       tryNext(rest);
     };
     xhr.send();
