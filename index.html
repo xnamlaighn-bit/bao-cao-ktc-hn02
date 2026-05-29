@@ -821,33 +821,41 @@ function renderShiftCard(dk, ca, icon) {
 }
 
 // ═══════════════════════════════════════════════
-// FETCH CSV — direct browser fetch → allorigins.win fallback
+// FETCH CSV — direct → proxy 1 (allorigins) → proxy 2 (corsproxy.io) → proxy 3 (thingproxy)
 // ═══════════════════════════════════════════════
 function fetchCSV(url, cb) {
-  const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+  const proxies = [
+    'https://api.allorigins.win/raw?url='         + encodeURIComponent(url),
+    'https://corsproxy.io/?'                      + encodeURIComponent(url),
+    'https://thingproxy.freeboard.io/fetch/'      + url,
+  ];
 
-  function doXHR(target, timeout, fallback) {
+  function doXHR(target, timeout, nextProxies) {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', target, true);
     xhr.timeout = timeout;
+    const tryNext = () => {
+      if (nextProxies && nextProxies.length > 0) {
+        console.log('[FETCH] Thử proxy tiếp:', nextProxies[0].slice(0,40) + '...');
+        doXHR(nextProxies[0], 15000, nextProxies.slice(1));
+      } else {
+        cb(new Error('Tất cả proxy đều thất bại'));
+      }
+    };
     xhr.onload = () => {
       const txt = xhr.responseText || '';
       if (xhr.status === 200 && txt.length > 50 && !txt.trimStart().startsWith('<')) {
         cb(null, txt);
-      } else if (fallback) {
-        doXHR(fallback, 25000, null);
       } else {
-        cb(new Error('Empty / non-CSV response'));
+        tryNext();
       }
     };
-    xhr.onerror = xhr.ontimeout = () => {
-      if (fallback) doXHR(fallback, 25000, null);
-      else cb(new Error('Network/timeout'));
-    };
+    xhr.onerror = xhr.ontimeout = () => tryNext();
     xhr.send();
   }
 
-  doXHR(url, 15000, proxy);
+  // Thử trực tiếp trước (nếu không bị CORS block)
+  doXHR(url, 10000, proxies);
 }
 
 // ═══════════════════════════════════════════════
