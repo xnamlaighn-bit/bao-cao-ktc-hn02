@@ -848,20 +848,26 @@ function fetchCSV(url, cb) {
     const { url: target, timeout } = remaining[0];
     const rest = remaining.slice(1);
 
+    console.log('[FETCH] Thử tải từ:', target.slice(0, 100));
     const xhr = new XMLHttpRequest();
     xhr.open('GET', target, true);
     xhr.timeout = timeout;
     xhr.onload = () => {
       const txt = xhr.responseText || '';
+      console.log(`[FETCH] Phản hồi từ ${target.slice(0, 50)}: Status = ${xhr.status}, Length = ${txt.length}`);
       if (xhr.status === 200 && txt.length > 50 && !txt.trimStart().startsWith('<')) {
         cb(null, txt);
       } else {
-        console.warn('[FETCH] fail, thử tiếp:', rest[0]?.url?.slice(0, 50));
+        console.warn('[FETCH] Thất bại (status != 200 hoặc data không phải CSV), thử proxy tiếp theo. Preview:', txt.slice(0, 100));
         tryNext(rest);
       }
     };
-    xhr.onerror = xhr.ontimeout = () => {
-      console.warn('[FETCH] timeout/err, thử tiếp:', rest[0]?.url?.slice(0, 50));
+    xhr.onerror = (e) => {
+      console.warn('[FETCH] Lỗi kết nối (Network Error) từ:', target.slice(0, 100), e);
+      tryNext(rest);
+    };
+    xhr.ontimeout = () => {
+      console.warn('[FETCH] Hết thời gian chờ (Timeout) từ:', target.slice(0, 100));
       tryNext(rest);
     };
     xhr.send();
