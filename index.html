@@ -821,41 +821,46 @@ function renderShiftCard(dk, ca, icon) {
 }
 
 // ═══════════════════════════════════════════════
-// FETCH CSV — direct → proxy 1 (allorigins) → proxy 2 (corsproxy.io) → proxy 3 (thingproxy)
+// FETCH CSV — Render gs-proxy (primary) → allorigins → corsproxy.io
 // ═══════════════════════════════════════════════
-function fetchCSV(url, cb) {
-  const proxies = [
-    'https://api.allorigins.win/raw?url='         + encodeURIComponent(url),
-    'https://corsproxy.io/?'                      + encodeURIComponent(url),
-    'https://thingproxy.freeboard.io/fetch/'      + url,
-  ];
+const GS_PROXY_RENDER = 'https://bao-cao-ktc-hn02.onrender.com/gs-proxy?url=';
 
-  function doXHR(target, timeout, nextProxies) {
+function fetchCSV(url, cb) {
+  const renderProxy   = GS_PROXY_RENDER + encodeURIComponent(url);
+  const alloriginsProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+
+  // Check if running locally → use local proxy_server.py directly
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const localProxy = '/gs-proxy?url=' + encodeURIComponent(url);
+
+  const queue = isLocal
+    ? [localProxy, renderProxy, alloriginsProxy]
+    : [renderProxy, alloriginsProxy];
+
+  function tryNext(remaining) {
+    if (!remaining.length) { cb(new Error('Tất cả proxy thất bại')); return; }
+    const target = remaining[0];
+    const rest   = remaining.slice(1);
     const xhr = new XMLHttpRequest();
     xhr.open('GET', target, true);
-    xhr.timeout = timeout;
-    const tryNext = () => {
-      if (nextProxies && nextProxies.length > 0) {
-        console.log('[FETCH] Thử proxy tiếp:', nextProxies[0].slice(0,40) + '...');
-        doXHR(nextProxies[0], 15000, nextProxies.slice(1));
-      } else {
-        cb(new Error('Tất cả proxy đều thất bại'));
-      }
-    };
+    xhr.timeout = 25000;
     xhr.onload = () => {
       const txt = xhr.responseText || '';
       if (xhr.status === 200 && txt.length > 50 && !txt.trimStart().startsWith('<')) {
         cb(null, txt);
       } else {
-        tryNext();
+        console.warn('[FETCH] proxy fail, thử tiếp:', rest[0]?.slice(0,50));
+        tryNext(rest);
       }
     };
-    xhr.onerror = xhr.ontimeout = () => tryNext();
+    xhr.onerror = xhr.ontimeout = () => {
+      console.warn('[FETCH] timeout/err, thử tiếp:', rest[0]?.slice(0,50));
+      tryNext(rest);
+    };
     xhr.send();
   }
 
-  // Thử trực tiếp trước (nếu không bị CORS block)
-  doXHR(url, 10000, proxies);
+  tryNext(queue);
 }
 
 // ═══════════════════════════════════════════════
