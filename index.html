@@ -987,11 +987,22 @@ function getShift(slot) {
   return 3;
 }
 
+function normalizeDate(str) {
+  if (!str) return '';
+  const parts = str.split('/');
+  if (parts.length !== 3) return str;
+  const d = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const y = parseInt(parts[2], 10);
+  return `${d}/${m}/${y}`;
+}
+
 function parseSheet2(csv) {
   const rows = parseCSV(csv).slice(2); // skip 2 header rows
   const out = {};
   for (const r of rows) {
-    const date = r[0]; if (!date) continue;
+    const rawDate = r[0]; if (!rawDate) continue;
+    const date = normalizeDate(rawDate);
     const slot  = r[1];
     const yc    = parseInt(r[2])  || 0;   // kho requirement
     const dk    = parseInt(r[19]) || 0;   // planned total
@@ -1011,7 +1022,8 @@ function parseSheet3(csv) {
   const rows = parseCSV(csv).slice(2); // skip 2 header rows
   const out = {};
   for (const r of rows) {
-    const date = r[0]; if (!date) continue;
+    const rawDate = r[0]; if (!rawDate) continue;
+    const date = normalizeDate(rawDate);
     const slot  = r[1];
     const yc    = parseInt(r[4])  || 0;   // Yêu cầu column
     const dk    = parseInt(r[9])  || 0;   // Tổng Đăng ký column
