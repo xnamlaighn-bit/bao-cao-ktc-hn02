@@ -941,24 +941,41 @@ function loadSheets() {
   sheetsLoading = true;
   setStatus('Đang tải Google Sheets...', '');
   let done1=false, done2=false;
+  let err1=null, err2=null;
 
   const tryRender = () => {
     if (!done1 || !done2) return;
     sheetsLoading = false;
     const ok = Object.keys(nvData).length > 0 || Object.keys(flData).length > 0;
     const mbTxt = mbVol ? ' · Metabase OK' : '';
-    setStatus(ok ? `✅ Sheets OK${mbTxt}` : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
+    if (err1 || err2) {
+      console.error('[LOAD] Errors fetching sheets:', { err1, err2 });
+      setStatus(`⚠️ Lỗi tải Sheets (Sheet1: ${err1 ? 'Lỗi' : 'OK'}, Sheet2: ${err2 ? 'Lỗi' : 'OK'})${mbTxt}`, 'r');
+    } else {
+      setStatus(ok ? `✅ Sheets OK${mbTxt}` : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
+    }
     render();
   };
 
+  console.log('[LOAD] Bắt đầu tải SHEET1...');
   fetchCSV(SHEET1, (err, txt) => {
-    if (!err) {
+    if (err) {
+      err1 = err;
+      console.error('[LOAD] Lỗi tải SHEET1:', err);
+    } else {
+      console.log('[LOAD] Đã tải SHEET1 thành công, length:', txt.length);
       nvData = parseSheet1(txt);
     }
     done1 = true; tryRender();
   });
+
+  console.log('[LOAD] Bắt đầu tải SHEET2...');
   fetchCSV(SHEET2, (err, txt) => {
-    if (!err) {
+    if (err) {
+      err2 = err;
+      console.error('[LOAD] Lỗi tải SHEET2:', err);
+    } else {
+      console.log('[LOAD] Đã tải SHEET2 thành công, length:', txt.length);
       flData = parseSheet2(txt);
     }
     done2 = true; tryRender();
