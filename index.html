@@ -219,6 +219,20 @@
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     @media(max-width:900px) { .grid { grid-template-columns: 1fr; } }
 
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media(max-width:1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media(max-width:640px) { .grid-4 { grid-template-columns: 1fr; } }
+
+    /* ─── CHART TABS ─── */
+    .chart-tabs button.active {
+      background: var(--surface) !important;
+      color: var(--t1) !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .chart-tabs button:hover:not(.active) {
+      color: var(--t1) !important;
+    }
+
     /* ─── CARD ─── */
     .card {
       background: var(--surface);
@@ -425,6 +439,7 @@
 // ═══════════════════════════════════════════════
 const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc/export?format=csv&gid=1878142111';
 const SHEET2 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=1455372314';
+const SHEET3 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=2127051141';
 const MB_HOST  = 'https://data-bi.ghn.vn';
 const MB_DASH  = 143;
 let MB_PROXY = (function() {
@@ -441,10 +456,12 @@ let MB_PROXY = (function() {
 // ═══════════════════════════════════════════════
 let nvData = {};
 let flData = {};
+let flDxData = {};
 let mbVol  = null;
 let mbToken = '';
 let mbSkipped = false;
 let sheetsLoading = false;
+let currentTrendTab = 'hn02';
 
 // Ngày đang xem (mặc định = hôm qua)
 let viewDate = (function(){
@@ -480,6 +497,23 @@ function goDate(isoStr) {
 function goToday() {
   const d = new Date(); d.setDate(d.getDate()-1);
   setViewDate(d);
+}
+function switchTrendTab(tab) {
+  currentTrendTab = tab;
+  document.querySelectorAll('.chart-tab').forEach(btn => {
+    btn.classList.remove('active');
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--t2)';
+    btn.style.boxShadow = 'none';
+  });
+  const activeBtn = document.getElementById('tab-' + tab);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+    activeBtn.style.background = 'var(--surface)';
+    activeBtn.style.color = 'var(--t1)';
+    activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+  }
+  renderFLTrendChart(viewDate);
 }
 
 // ═══════════════════════════════════════════════
@@ -592,18 +626,25 @@ function render() {
     </div>
     <div class="section-hdr-right">${sectionLabel}</div>
   </div>
-  <div class="grid">
+  <div class="grid-4">
     ${renderNVCard(vdK.s1)}
-    ${renderFLCard(vdK.s2)}
+    ${renderFLCard(vdK.s2, flData, 'Freelancer (FL) - HN02')}
+    ${renderFLCard(vdK.s2, flDxData, 'Freelancer (FL) - KTC DX')}
     ${renderVolCard(vdK)}
   </div>
   
   <div class="card" style="margin-top: 16px;">
-    <div class="card-hdr">
-      <div class="card-icon" style="background:var(--orange-bg);font-size:20px">📈</div>
-      <div>
-        <div class="card-ttl">Xu Hướng Đáp Ứng Freelancer (FL) — 7 ngày gần nhất</div>
-        <div class="card-sub">Chi tiết số lượng yêu cầu, thực tế và tỉ lệ đáp ứng (${dateRangeDisp})</div>
+    <div class="card-hdr" style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="card-icon" style="background:var(--orange-bg);font-size:20px">📈</div>
+        <div>
+          <div class="card-ttl">Xu Hướng Đáp Ứng Freelancer (FL) — 7 ngày gần nhất</div>
+          <div class="card-sub">Chi tiết số lượng yêu cầu, thực tế và tỉ lệ đáp ứng (${dateRangeDisp})</div>
+        </div>
+      </div>
+      <div class="chart-tabs" style="display: flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 8px;">
+        <button id="tab-hn02" class="chart-tab ${currentTrendTab === 'hn02' ? 'active' : ''}" onclick="switchTrendTab('hn02')" style="border: none; background: transparent; color: var(--t2); font-weight: 600; font-size: 11px; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">HN02</button>
+        <button id="tab-dx" class="chart-tab ${currentTrendTab === 'dx' ? 'active' : ''}" onclick="switchTrendTab('dx')" style="border: none; background: transparent; color: var(--t2); font-weight: 600; font-size: 11px; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">KTC DX</button>
       </div>
     </div>
     <div style="position: relative; height: 280px; width: 100%; margin-top: 16px;">
@@ -676,12 +717,12 @@ function renderNVCard(dateK) {
 // ═══════════════════════════════════════════════
 // RENDER: FL CARD
 // ═══════════════════════════════════════════════
-function renderFLCard(dateK) {
-  const d = flData[dateK];
+function renderFLCard(dateK, data = flData, title = 'Freelancer (FL) - HN02') {
+  const d = data[dateK];
   if (!d || !d.summary) return `<div class="card">
     <div class="card-hdr">
       <div class="card-icon" style="background:var(--orange-bg);font-size:20px">⚡</div>
-      <div><div class="card-ttl">Freelancer (FL)</div></div>
+      <div><div class="card-ttl">${title}</div></div>
     </div>
     <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu FL<br><small style="color:var(--t3)">(key: ${dateK})</small></div>
   </div>`;
@@ -718,7 +759,7 @@ function renderFLCard(dateK) {
   return `<div class="card">
     <div class="card-hdr">
       <div class="card-icon" style="background:var(--orange-bg);font-size:20px">⚡</div>
-      <div><div class="card-ttl">Freelancer (FL)</div></div>
+      <div><div class="card-ttl">${title}</div></div>
     </div>
     <div class="kpi-row">
       <div class="kpi"><div class="kpi-v" style="color:var(--orange)">${fmt(summary.yc)}</div><div class="kpi-l">Yêu cầu</div></div>
@@ -788,12 +829,14 @@ function renderShiftCard(dk, ca, icon) {
   const d = nvData[dk.s1];
   const s = d && d[ca];
   const flDay = flData[dk.s2];
+  const flDxDay = flDxData[dk.s2];
   const caShiftN = ca==='CA 1'?1:ca==='CA 2'?2:3;
   const fl = flDay && flDay.slots && flDay.slots.filter(x => x.shift === caShiftN);
+  const flDx = flDxDay && flDxDay.slots && flDxDay.slots.filter(x => x.shift === caShiftN);
   const caColor = ca==='CA 1'?'var(--ca1)':ca==='CA 2'?'var(--ca2)':'var(--ca3)';
   const caBg    = ca==='CA 1'?'var(--orange-bg)':ca==='CA 2'?'var(--blue-bg)':'var(--purple-bg)';
 
-  let nvHtml = '', flHtml = '';
+  let nvHtml = '', flHtml = '', flDxHtml = '';
   if (s) {
     nvHtml = `
     <div class="shift-section">
@@ -810,7 +853,21 @@ function renderShiftCard(dk, ca, icon) {
     const r = totYC ? Math.round(totTT/totYC*100) : 0;
     flHtml = `
     <div class="shift-section">
-      <h4>⚡ Freelancer</h4>
+      <h4>⚡ Freelancer HN02</h4>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-v" style="font-size:24px;color:var(--orange)">${fmt(totYC)}</div><div class="kpi-l">Yêu cầu</div></div>
+        <div class="kpi"><div class="kpi-v" style="font-size:24px;color:${rColor(r)}">${fmt(totTT)}</div><div class="kpi-l">Thực tế</div></div>
+        <div class="kpi"><div class="kpi-v ${rClass(r)}" style="font-size:24px">${r}%</div><div class="kpi-l">Đáp ứng</div></div>
+      </div>
+    </div>`;
+  }
+  if (flDx && flDx.length) {
+    let totYC=0, totTT=0;
+    flDx.forEach(x=>{totYC+=x.yc;totTT+=x.tt;});
+    const r = totYC ? Math.round(totTT/totYC*100) : 0;
+    flDxHtml = `
+    <div class="shift-section">
+      <h4>⚡ Freelancer KTC DX</h4>
       <div class="kpi-row">
         <div class="kpi"><div class="kpi-v" style="font-size:24px;color:var(--orange)">${fmt(totYC)}</div><div class="kpi-l">Yêu cầu</div></div>
         <div class="kpi"><div class="kpi-v" style="font-size:24px;color:${rColor(r)}">${fmt(totTT)}</div><div class="kpi-l">Thực tế</div></div>
@@ -824,8 +881,8 @@ function renderShiftCard(dk, ca, icon) {
       <div class="card-icon" style="background:${caBg};font-size:20px">${icon}</div>
       <div><div class="card-ttl" style="color:${caColor}">${ca} — Hôm nay</div></div>
     </div>
-    ${nvHtml || flHtml
-      ? nvHtml + flHtml
+    ${nvHtml || flHtml || flDxHtml
+      ? nvHtml + flHtml + flDxHtml
       : '<div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu ca này</div>'
     }
   </div>`;
@@ -950,6 +1007,26 @@ function parseSheet2(csv) {
   return out;
 }
 
+function parseSheet3(csv) {
+  const rows = parseCSV(csv).slice(2); // skip 2 header rows
+  const out = {};
+  for (const r of rows) {
+    const date = r[0]; if (!date) continue;
+    const slot  = r[1];
+    const yc    = parseInt(r[4])  || 0;   // Yêu cầu column
+    const dk    = parseInt(r[9])  || 0;   // Tổng Đăng ký column
+    const tt    = parseInt(r[15]) || 0;   // Tổng Thực tế column
+    const rate  = yc > 0 ? (tt/yc)*100 : 0;
+    if (!out[date]) out[date] = { summary:null, slots:[] };
+    if (!slot) {
+      out[date].summary = { yc, dk, tt, rate };
+    } else {
+      out[date].slots.push({ slot, yc, dk, tt, rate, shift: getShift(slot) });
+    }
+  }
+  return out;
+}
+
 // ═══════════════════════════════════════════════
 // LOAD SHEETS
 // ═══════════════════════════════════════════════
@@ -957,17 +1034,17 @@ function loadSheets() {
   if (sheetsLoading) return;
   sheetsLoading = true;
   setStatus('Đang tải Google Sheets...', '');
-  let done1=false, done2=false;
-  let err1=null, err2=null;
+  let done1=false, done2=false, done3=false;
+  let err1=null, err2=null, err3=null;
 
   const tryRender = () => {
-    if (!done1 || !done2) return;
+    if (!done1 || !done2 || !done3) return;
     sheetsLoading = false;
-    const ok = Object.keys(nvData).length > 0 || Object.keys(flData).length > 0;
+    const ok = Object.keys(nvData).length > 0 || Object.keys(flData).length > 0 || Object.keys(flDxData).length > 0;
     const mbTxt = mbVol ? ' · Metabase OK' : '';
-    if (err1 || err2) {
-      console.error('[LOAD] Errors fetching sheets:', { err1, err2 });
-      setStatus(`⚠️ Lỗi tải Sheets (Sheet1: ${err1 ? 'Lỗi' : 'OK'}, Sheet2: ${err2 ? 'Lỗi' : 'OK'})${mbTxt}`, 'r');
+    if (err1 || err2 || err3) {
+      console.error('[LOAD] Errors fetching sheets:', { err1, err2, err3 });
+      setStatus(`⚠️ Lỗi tải Sheets (Sheet1: ${err1 ? 'Lỗi' : 'OK'}, Sheet2: ${err2 ? 'Lỗi' : 'OK'}, Sheet3: ${err3 ? 'Lỗi' : 'OK'})${mbTxt}`, 'r');
     } else {
       setStatus(ok ? `✅ Sheets OK${mbTxt}` : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
     }
@@ -996,6 +1073,18 @@ function loadSheets() {
       flData = parseSheet2(txt);
     }
     done2 = true; tryRender();
+  });
+
+  console.log('[LOAD] Bắt đầu tải SHEET3...');
+  fetchCSV(SHEET3, (err, txt) => {
+    if (err) {
+      err3 = err;
+      console.error('[LOAD] Lỗi tải SHEET3:', err);
+    } else {
+      console.log('[LOAD] Đã tải SHEET3 thành công, length:', txt.length);
+      flDxData = parseSheet3(txt);
+    }
+    done3 = true; tryRender();
   });
 }
 
@@ -1287,7 +1376,8 @@ function renderFLTrendChart(vd) {
     const pad = n => String(n).padStart(2,'0');
     labels.push(`${pad(d.getDate())}/${pad(d.getMonth()+1)}`);
 
-    const data = flData[k.s2];
+    const sourceData = currentTrendTab === 'hn02' ? flData : flDxData;
+    const data = sourceData[k.s2];
     if (data && data.summary) {
       yValues.push(data.summary.yc || 0);
       tValues.push(data.summary.tt || 0);
