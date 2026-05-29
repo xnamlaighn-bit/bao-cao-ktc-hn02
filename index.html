@@ -691,6 +691,12 @@ function renderFLCard(dateK) {
   const grp = (shiftN, color) => {
     const s = slots.filter(x => x.shift === shiftN);
     if (!s.length) return '';
+    let shiftYc = 0, shiftTt = 0;
+    s.forEach(x => {
+      shiftYc += x.yc;
+      shiftTt += x.tt;
+    });
+    const shiftRate = shiftYc > 0 ? (shiftTt / shiftYc) * 100 : 0;
     const rows = s.map(x => `
       <div class="slot">
         <div class="slot-time">${x.slot}</div>
@@ -701,7 +707,12 @@ function renderFLCard(dateK) {
         </div>
       </div>`).join('');
     const lbl = shiftN===1?'🌅 Ca 1':shiftN===2?'🌆 Ca 2':'🌙 Ca 3';
-    return `<div class="fl-ca-hdr" style="color:${color}">${lbl}</div><div>${rows}</div>`;
+    return `<div class="fl-ca-hdr" style="color:${color}; display:flex; justify-content:space-between; align-items:center;">
+      <span>${lbl}</span>
+      <span style="font-size:11px; font-weight:normal; color:var(--t2)">
+        Tổng: YC <strong style="color:var(--orange)">${fmt(shiftYc)}</strong> · ĐƯ <strong style="color:${rColor(shiftRate)}">${fmt(shiftTt)}</strong> (<span class="pill ${rClass(shiftRate)}" style="padding: 1px 4px; font-size:10px; font-weight:700;">${fmtR(shiftRate)}</span>)
+      </span>
+    </div><div>${rows}</div>`;
   };
 
   return `<div class="card">
