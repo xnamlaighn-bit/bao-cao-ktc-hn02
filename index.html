@@ -738,9 +738,9 @@ function renderFLCard(dateK) {
 let mbXNSlug = 'in_out';
 
 function renderVolCard(dk) {
-  const dateParam = `ng%25C3%25A0y=${dk.iso}~${dk.iso}`;
-  const xnParam   = `${mbXNSlug}=Nh%E1%BA%ADP`;
-  const mbLink = `${MB_HOST}/dashboard/${MB_DASH}?kho=Kho+Trung+Chuy%E1%BB%83n+H%C3%A0+N%E1%BB%99i+02&${dateParam}&${xnParam}`;
+  const dateParam = `ng%25C3%25A0y_theo_ca=${dk.iso}~${dk.iso}`;
+  const xnParam   = `xu%25E1%25BA%25A5t%252Fnh%25E1%25BA%25ADp=Nh%E1%BA%ADP`;
+  const mbLink = `${MB_HOST}/dashboard/${MB_DASH}?ca_lv=&kho=Kho+Trung+Chuy%E1%BB%83n+H%C3%A0+N%E1%BB%99i+02&${dateParam}&${xnParam}&tab=150-xu%E1%BA%A5t-nh%E1%BA%ADp`;
 
   // Metabase update lúc 09:00 hàng ngày → dữ liệu ngày N-1
   const isAfter9 = new Date().getHours() >= 9;
@@ -1083,9 +1083,9 @@ function loadMbVol() {
 function buildParams(dashParams, vdIso) {
   const find = (...keys) => dashParams.find(p =>
     keys.some(k => (p.slug||'').toLowerCase().includes(k)||(p.name||'').toLowerCase().includes(k)));
-  const pDate = find('ngày','ngay','date','day');
+  const pDate = find('ngày_theo_ca','ngày','ngay','date','day');
   const pKho  = find('kho','warehouse');
-  const pXN   = find('xuất','nhập','xuat','nhap','direction','in_out');
+  const pXN   = find('xuất/nhập','nhập','xuất','nhap','xuat','direction','in_out');
   if (pXN) mbXNSlug = pXN.slug || 'in_out';
   console.log('[MB] Params — date:', pDate?.slug, 'kho:', pKho?.slug, 'xn:', pXN?.slug);
   const params = [];
