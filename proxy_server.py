@@ -45,10 +45,46 @@ class Handler(SimpleHTTPRequestHandler):
         mb_path    = self.path[len(PROXY):]
         target_url = f'{METABASE}{mb_path}'
 
+        # CẤU HÌNH TỰ ĐỘNG LOGIN
+        mb_user = 'namlx@ghn.vn'
+        mb_pass = 'Lxn230492!'
+        
+        # Biến toàn cục / lưu token tạm thời
+        global_vars = globals()
+        cached_token = global_vars.get('_mb_cached_token')
+
         fwd_headers = {}
         for h in ['Content-Type', 'X-Metabase-Session']:
             v = self.headers.get(h)
             if v: fwd_headers[h] = v
+
+        # Nếu browser không gửi Session hoặc gửi rỗng, ưu tiên dùng token đã cache
+        if not fwd_headers.get('X-Metabase-Session'):
+            if cached_token:
+                fwd_headers['X-Metabase-Session'] = cached_token
+            else:
+                # Tiến hành Login tự động để lấy token mới
+                print("  🔑 [AUTO-LOGIN] Không tìm thấy Token. Tiến hành login tự động...")
+                try:
+                    ctx_login = ssl.create_default_context()
+                    ctx_login.check_hostname = False
+                    ctx_login.verify_mode = ssl.CERT_NONE
+                    
+                    login_req = Request(
+                        f'{METABASE}/api/session',
+                        data=json.dumps({'username': mb_user, 'password': mb_pass}).encode('utf-8'),
+                        headers={'Content-Type': 'application/json'},
+                        method='POST'
+                    )
+                    with urlopen(login_req, context=ctx_login, timeout=10) as r_login:
+                        res_login = json.loads(r_login.read().decode('utf-8'))
+                        new_token = res_login.get('id')
+                        if new_token:
+                            print("  🔑 [AUTO-LOGIN] Login thành công! Token mới:", new_token[:8] + "...")
+                            global_vars['_mb_cached_token'] = new_token
+                            fwd_headers['X-Metabase-Session'] = new_token
+                except Exception as e_login:
+                    print("  ❌ [AUTO-LOGIN] Lỗi login:", e_login)
 
         print(f'  → PROXY {method} {target_url}')
 
@@ -71,6 +107,11 @@ class Handler(SimpleHTTPRequestHandler):
                 self.wfile.write(data)
 
         except HTTPError as e:
+            # Nếu token đã cache bị hết hạn (HTTP 401), xóa cache để lần sau login lại
+            if e.code in [401, 403]:
+                print("  🔑 [AUTO-LOGIN] Token đã cache bị hết hạn (401/403). Xóa cache.")
+                global_vars['_mb_cached_token'] = None
+                
             data = e.read()
             print(f'  ← HTTP {e.code} from Metabase: {data[:200]}')
             self.send_response(e.code)
