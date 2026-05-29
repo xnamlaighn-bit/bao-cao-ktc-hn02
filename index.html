@@ -1149,8 +1149,20 @@ function queryCards(cards, params) {
         const typCI = cols.findIndex(c =>
           ['loại hàng','cargo','type','loại','hang type','cat','nhóm','nhom','phân vùng','phan vung','class','phân loại','phan loai'].some(k=>c.includes(k)));
 
+        // Cột hướng đi: xuất/nhập, in/out để lọc chỉ lấy số nhập nếu card chứa cả 2 loại
+        const dirCI = cols.findIndex(c =>
+          ['xuất/nhập','xuat/nhap','in/out','in_out','hướng','huong','direction','type_flow'].some(k=>c.includes(k)));
+
         let totSl=0, sm=0, ck=0, hv=0;
         rows.forEach(r => {
+          // Nếu có cột hướng đi, chỉ lấy những dòng có giá trị 'nhập'
+          if (dirCI >= 0) {
+            const dirVal = String(r[dirCI] || '').toLowerCase();
+            if (!dirVal.includes('nhập') && !dirVal.includes('nhap') && !dirVal.includes('in')) {
+              return; // bỏ qua các dòng không phải là Nhập
+            }
+          }
+
           const v = parseFloat(r[numCI<0?0:numCI])||0;
           totSl += v;
           if (typCI>=0) {
@@ -1161,7 +1173,7 @@ function queryCards(cards, params) {
             else sm+=v;
           }
         });
-        console.log(`[MB] "${dc.card.name}": rows=${rows.length} totSl=${Math.round(totSl)} numCI=${numCI}(${cols[numCI]}) typCI=${typCI}(${cols[typCI]}) sm=${Math.round(sm)} ck=${Math.round(ck)} hv=${Math.round(hv)}`);
+        console.log(`[MB] "${dc.card.name}": rows=${rows.length} totSl=${Math.round(totSl)} numCI=${numCI}(${cols[numCI]}) typCI=${typCI}(${cols[typCI]}) dirCI=${dirCI} sm=${Math.round(sm)} ck=${Math.round(ck)} hv=${Math.round(hv)}`);
         results.push({name:dc.card.name, totSl, sm, ck, hv, numRows:rows.length});
       } catch(e) { console.log('[MB] parse err:', dc.card.name, e.message); }
       done();
