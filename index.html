@@ -514,14 +514,14 @@
 
     <div class="auth-divider"><span>Đăng nhập để tiếp tục</span></div>
 
-    <button id="google-signin-btn" onclick="triggerGoogleSignIn()">
-      <svg width="20" height="20" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      Đăng nhập với Google
+    <!-- Google renders its official button here -->
+    <div id="google-btn-container" style="display:flex;justify-content:center;margin-bottom:4px;"></div>
+    <!-- Fallback if renderButton not ready yet -->
+    <button id="google-signin-fallback" onclick="triggerGoogleSignIn()" style="display:none;
+      width:100%;padding:13px 20px;background:white;color:#374151;
+      border:2px solid #E5E7EB;border-radius:12px;font-family:inherit;
+      font-size:14px;font-weight:600;cursor:pointer;">
+      🔑 Đăng nhập với Google
     </button>
 
     <div class="auth-restriction">
@@ -1853,42 +1853,35 @@ function showAuthError(msg) {
   el.classList.add('show');
 }
 
-// ─────────────────────────────────────────────────
-// Trigger Google Sign-In popup
-// ─────────────────────────────────────────────────
+// Trigger fallback (if renderButton not rendered yet)
 function triggerGoogleSignIn() {
-  if (GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
-    showAuthError('⚙️ Chưa cấu hình Google Client ID. Xem file index.html → const GOOGLE_CLIENT_ID.');
+  if (!window.google?.accounts?.id) {
+    showAuthError('❌ Google Sign-In chưa tải xong. Vui lòng chờ vài giây rồi thử lại.');
     return;
   }
-  if (window.google?.accounts?.id) {
-    google.accounts.id.prompt();
-  } else {
-    showAuthError('❌ Google Sign-In chưa tải xong. Vui lòng chờ vài giây rồi thử lại.');
-  }
+  google.accounts.id.prompt(function(notification) {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      showAuthError('⚠️ Popup bị chặn. Hãy tắt chế độ ẩn danh hoặc cho phép popup từ trang này.');
+    }
+  });
 }
 
-// ─────────────────────────────────────────────────
+// ───────────────────────────────────────────────
 // Sign Out
-// ─────────────────────────────────────────────────
+// ───────────────────────────────────────────────
 function doSignOut() {
   sessionStorage.removeItem('ghn_auth');
   if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-
-  // Hide app, show overlay
   document.getElementById('app-wrap').style.display = 'none';
-  const overlay = document.getElementById('auth-overlay');
-  overlay.classList.remove('hidden');
-
-  // Reset error + hide user pill
+  document.getElementById('auth-overlay').classList.remove('hidden');
   document.getElementById('auth-error').classList.remove('show');
   document.getElementById('user-pill').style.display = 'none';
   console.log('[AUTH] Đã đăng xuất');
 }
 
-// ─────────────────────────────────────────────────
+// ───────────────────────────────────────────────
 // Initialize Google Identity Services
-// ─────────────────────────────────────────────────
+// ───────────────────────────────────────────────
 function initGoogleAuth() {
   if (!window.google?.accounts?.id) {
     setTimeout(initGoogleAuth, 200); // wait for GSI script to load
@@ -1896,17 +1889,32 @@ function initGoogleAuth() {
   }
 
   if (GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
-    console.warn('[AUTH] Google Client ID chưa được cấu hình. Tính năng đăng nhập chưa hoạt động.');
+    console.warn('[AUTH] Google Client ID chưa được cấu hình.');
     return;
   }
 
   google.accounts.id.initialize({
     client_id:              GOOGLE_CLIENT_ID,
     callback:               handleCredentialResponse,
-    hosted_domain:          ALLOWED_DOMAIN, // restrict picker to @ghn.vn accounts
-    auto_select:            true,           // auto sign-in if 1 matching session
+    hosted_domain:          ALLOWED_DOMAIN,
+    auto_select:            false,
     cancel_on_tap_outside:  false,
+    ux_mode:                'popup',  // use popup window, not redirect
   });
+
+  // Render the official Google button (works in incognito, more reliable than One Tap)
+  const btnContainer = document.getElementById('google-btn-container');
+  if (btnContainer) {
+    google.accounts.id.renderButton(btnContainer, {
+      type:   'standard',
+      theme:  'outline',
+      size:   'large',
+      text:   'signin_with',
+      shape:  'rectangular',
+      width:  330,
+      logo_alignment: 'left',
+    });
+  }
 
   // Check if already authenticated in this session
   const saved = sessionStorage.getItem('ghn_auth');
@@ -1914,16 +1922,15 @@ function initGoogleAuth() {
     try {
       const info = JSON.parse(saved);
       const nowSec = Math.floor(Date.now() / 1000);
-      // Re-validate: check domain + expiry (Google tokens expire ~1hr)
       if (info.email && info.email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN) && info.exp > nowSec) {
         showDashboard(info);
-        return; // skip showing overlay
+        return;
       }
-    } catch { /* invalid saved data — fall through to show overlay */ }
+    } catch { /* invalid — fall through */ }
     sessionStorage.removeItem('ghn_auth');
   }
 
-  // No valid session — trigger One Tap prompt
+  // Optionally try One Tap (will silently fail in incognito — button above is the main CTA)
   google.accounts.id.prompt();
 }
 
