@@ -4,6 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Báo Cáo Vận Hành · KTC HN02 — GHN</title>
+
+  <!-- ═══ SECURITY HEADERS (per security-rules.md) ═══════════════════════ -->
+  <!-- Prevent indexing of internal operational dashboard -->
+  <meta name="robots" content="noindex, nofollow">
+  <!-- Content Security Policy: whitelist only trusted sources -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+             script-src 'self' https://cdn.jsdelivr.net https://accounts.google.com;
+             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+             font-src https://fonts.gstatic.com;
+             img-src 'self' https://cdn.hstatic.net https://lh3.googleusercontent.com data:;
+             connect-src 'self' https://docs.google.com https://bao-cao-ktc-hn02.onrender.com https://data-bi.ghn.vn https://accounts.google.com;
+             frame-src https://accounts.google.com;
+             frame-ancestors 'none';">
+  <!-- Prevent MIME-type sniffing -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <!-- Control Referer header — do not leak token via referrer -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -356,9 +376,163 @@
     .card-footer::before { content: '●'; color: var(--orange); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Identity Services — for @ghn.vn SSO -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* ─── AUTH OVERLAY ─── */
+    #auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 40%, #16213e 70%, #0f3460 100%);
+      font-family: 'Exo', 'Inter', sans-serif;
+      transition: opacity .4s ease, visibility .4s ease;
+    }
+    #auth-overlay.hidden {
+      opacity: 0; visibility: hidden; pointer-events: none;
+    }
+    /* Animated background particles */
+    .auth-bg-grid {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    }
+    .auth-bg-grid::before {
+      content: '';
+      position: absolute; inset: -50%;
+      background: radial-gradient(ellipse at 30% 50%, rgba(255,108,10,.12) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 20%, rgba(0,126,212,.10) 0%, transparent 55%),
+                  radial-gradient(ellipse at 60% 80%, rgba(124,58,237,.08) 0%, transparent 50%);
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.1) rotate(3deg); } }
+
+    .auth-card {
+      position: relative; z-index: 1;
+      background: rgba(255,255,255,.97);
+      border-radius: 24px;
+      padding: 48px 44px 40px;
+      width: 100%; max-width: 420px;
+      margin: 16px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
+      text-align: center;
+      animation: cardIn .5s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes cardIn { from { opacity:0; transform: translateY(32px) scale(.96); } to { opacity:1; transform: none; } }
+
+    .auth-logo-wrap {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #FF6C0A, #FF4500);
+      border-radius: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 32px rgba(255,108,10,.35);
+    }
+    .auth-logo-wrap img { height: 44px; object-fit: contain; filter: brightness(0) invert(1); }
+
+    .auth-title {
+      font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 6px; letter-spacing: -.3px;
+    }
+    .auth-subtitle {
+      font-size: 13px; color: #6B7280; margin-bottom: 28px; line-height: 1.6;
+    }
+    .auth-divider {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: #E5E7EB;
+    }
+    .auth-divider span { font-size: 11px; color: #9CA3AF; font-weight: 500; white-space: nowrap; }
+
+    /* Custom Google button override */
+    #google-signin-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px 20px;
+      background: white; color: #374151;
+      border: 2px solid #E5E7EB; border-radius: 12px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    #google-signin-btn:hover {
+      border-color: #FF6C0A; color: #FF6C0A;
+      box-shadow: 0 4px 16px rgba(255,108,10,.12);
+      transform: translateY(-1px);
+    }
+    #google-signin-btn:active { transform: translateY(0); }
+    #google-signin-btn svg { flex-shrink: 0; }
+
+    .auth-restriction {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 20px; padding: 10px 16px;
+      background: #FFF3EC; border: 1px solid #FFD4B0; border-radius: 10px;
+      font-size: 12px; color: #FF6C0A; font-weight: 600;
+    }
+
+    .auth-error {
+      margin-top: 16px; padding: 10px 16px;
+      background: #FDECEA; border: 1px solid #FCCAC9; border-radius: 10px;
+      font-size: 12px; color: #E53935; font-weight: 600;
+      display: none;
+    }
+    .auth-error.show { display: block; }
+
+    /* User pill in header */
+    .user-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: #FFF3EC; border: 1.5px solid #FFD4B0;
+      border-radius: 20px; padding: 4px 12px 4px 4px;
+      cursor: pointer; transition: all .15s;
+    }
+    .user-pill:hover { background: var(--orange); border-color: var(--orange); }
+    .user-pill:hover .user-name, .user-pill:hover .user-logout { color: white; }
+    .user-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid white;
+    }
+    .user-avatar-fallback {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--orange); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; flex-shrink: 0;
+    }
+    .user-name { font-size: 12px; font-weight: 700; color: var(--t1); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-logout { font-size: 10px; color: var(--t3); font-weight: 500; }
+  </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- ═══════════════════════════════════════════════
+     AUTH OVERLAY — @ghn.vn Google SSO
+     ═══════════════════════════════════════════════ -->
+<div id="auth-overlay">
+  <div class="auth-bg-grid"></div>
+  <div class="auth-card">
+    <div class="auth-logo-wrap">
+      <img src="https://cdn.hstatic.net/themes/200000472237/1001423864/14/logo.png?v=2850" alt="GHN">
+    </div>
+    <div class="auth-title">KTC HN02 Dashboard</div>
+    <div class="auth-subtitle">Báo cáo vận hành nội bộ<br>GHN — Kho Trung Chuyển Hà Nội 02</div>
+
+    <div class="auth-divider"><span>Đăng nhập để tiếp tục</span></div>
+
+    <button id="google-signin-btn" onclick="triggerGoogleSignIn()">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Đăng nhập với Google
+    </button>
+
+    <div class="auth-restriction">
+      <span>🔒</span> Chỉ dành cho email <strong>@ghn.vn</strong>
+    </div>
+
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app-wrap" style="display:none">
 
   <!-- HEADER -->
   <header class="hdr">
@@ -376,6 +550,14 @@
       <div class="clock-wrap">
         <div class="clock" id="clock">--:--:--</div>
         <div class="clock-d" id="clockd">--/--/----</div>
+      </div>
+      <div id="user-pill" class="user-pill" onclick="doSignOut()" title="Đăng xuất" style="display:none">
+        <img id="user-avatar" class="user-avatar" src="" alt="Avatar" onerror="this.style.display='none';document.getElementById('user-avatar-fb').style.display='flex'">
+        <div id="user-avatar-fb" class="user-avatar-fallback" style="display:none"></div>
+        <div>
+          <div class="user-name" id="user-name"></div>
+          <div class="user-logout">Đăng xuất ↗</div>
+        </div>
       </div>
       <button class="btn-refresh" id="btn-refresh" onclick="doRefresh()">🔄 Làm mới</button>
     </div>
@@ -435,6 +617,25 @@
 
 <script>
 // ═══════════════════════════════════════════════
+// SECURITY UTILITY — per security-rules.md
+// "Never render user-supplied input as raw HTML"
+// ═══════════════════════════════════════════════
+function escHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Validate Metabase session token — must be UUID format
+// Prevents using arbitrary values stored in localStorage
+function isValidToken(token) {
+  return typeof token === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+}
+
+// ═══════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════
 const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc/export?format=csv&gid=1878142111';
@@ -443,10 +644,6 @@ const SHEET3 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53D
 const MB_HOST  = 'https://data-bi.ghn.vn';
 const MB_DASH  = 143;
 let MB_PROXY = (function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const paramProxy = urlParams.get('proxy');
-  if (paramProxy) return paramProxy.replace(/\/$/, ''); // remove trailing slash if any
-  
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   return isLocal ? '/mb-proxy' : 'https://bao-cao-ktc-hn02.onrender.com/mb-proxy';
 })();
@@ -683,7 +880,7 @@ function renderNVCard(dateK) {
       <div class="card-icon" style="background:var(--green-bg);font-size:20px">👷</div>
       <div><div class="card-ttl">Nhân Viên Phân Hàng</div></div>
     </div>
-    <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu NV<br><small style="color:var(--t3)">(key: ${dateK})</small></div>
+    <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu NV<br><small style="color:var(--t3)">(key: ${escHtml(dateK)})</small></div>
   </div>`;
 
   const cas = ['CA 1','CA 2','CA 3'];
@@ -722,9 +919,9 @@ function renderFLCard(dateK, data = flData, title = 'Freelancer (FL) - HN02') {
   if (!d || !d.summary) return `<div class="card">
     <div class="card-hdr">
       <div class="card-icon" style="background:var(--orange-bg);font-size:20px">⚡</div>
-      <div><div class="card-ttl">${title}</div></div>
+      <div><div class="card-ttl">${escHtml(title)}</div></div>
     </div>
-    <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu FL<br><small style="color:var(--t3)">(key: ${dateK})</small></div>
+    <div class="empty"><div class="empty-icon">📭</div>Chưa có dữ liệu FL<br><small style="color:var(--t3)">(key: ${escHtml(dateK)})</small></div>
   </div>`;
 
   const { summary, slots } = d;
@@ -759,7 +956,7 @@ function renderFLCard(dateK, data = flData, title = 'Freelancer (FL) - HN02') {
   return `<div class="card">
     <div class="card-hdr">
       <div class="card-icon" style="background:var(--orange-bg);font-size:20px">⚡</div>
-      <div><div class="card-ttl">${title}</div></div>
+      <div><div class="card-ttl">${escHtml(title)}</div></div>
     </div>
     <div class="kpi-row">
       <div class="kpi"><div class="kpi-v" style="color:var(--orange)">${fmt(summary.yc)}</div><div class="kpi-l">Yêu cầu</div></div>
@@ -889,27 +1086,29 @@ function renderShiftCard(dk, ca, icon) {
 }
 
 // ═══════════════════════════════════════════════
-// FETCH CSV — direct (CORS=* on /export) → Render gs-proxy → allorigins
+// FETCH CSV — direct (CORS=* on /export) → Render gs-proxy (controlled)
 // Google Sheets /export returns Access-Control-Allow-Origin: *
 // so browser can fetch directly without any proxy!
+// NOTE: allorigins.win removed — per security-rules.md (uncontrolled 3rd party)
 // ═══════════════════════════════════════════════
 const GS_PROXY_RENDER = 'https://bao-cao-ktc-hn02.onrender.com/gs-proxy?url=';
 
 function fetchCSV(url, cb) {
-  const renderProxy     = GS_PROXY_RENDER + encodeURIComponent(url);
-  const alloriginsProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+  const renderProxy = GS_PROXY_RENDER + encodeURIComponent(url);
 
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const localProxy = '/gs-proxy?url=' + encodeURIComponent(url);
 
-  // Try direct first (CORS=* on Google export URLs), then fallbacks
+  // Try direct first (CORS=* on Google export URLs), then Render proxy fallback.
+  // NOTE: allorigins.win removed — per security-rules.md:
+  //   "Never make server-side HTTP requests to user-supplied URLs without
+  //    validating against an explicit allowlist" — we cannot control allorigins.win.
   const queue = isLocal
-    ? [{ url: localProxy,     timeout: 10000 },
-       { url: url,            timeout: 12000 },
-       { url: renderProxy,    timeout: 55000 }]
-    : [{ url: url,            timeout: 12000 },  // direct fetch — fastest!
-       { url: renderProxy,    timeout: 55000 },  // Render fallback (~34s cold start)
-       { url: alloriginsProxy,timeout: 20000 }]; // allorigins last resort
+    ? [{ url: localProxy,  timeout: 10000 },
+       { url: url,         timeout: 12000 },
+       { url: renderProxy, timeout: 55000 }]
+    : [{ url: url,         timeout: 12000 },   // direct fetch — fastest!
+       { url: renderProxy, timeout: 55000 }];  // Render proxy (controlled) — fallback
 
   function tryNext(remaining) {
     if (!remaining.length) { cb(new Error('Không tải được dữ liệu')); return; }
@@ -1114,6 +1313,8 @@ function showMbStatus(msg, cls) {
 function doMbLogin() {
   const token = (document.getElementById('mb-token').value||'').trim();
   if (!token) { showMbStatus('❌ Vui lòng dán token trước', 'err'); return; }
+  // Validate token format — must be UUID (per security-rules.md: validate all input)
+  if (!isValidToken(token)) { showMbStatus('❌ Token không hợp lệ (phải là UUID dạng xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)', 'err'); return; }
   const btn = document.getElementById('mb-btn');
   btn.disabled = true; btn.textContent = '⏳ Đang xác thực...';
 
@@ -1126,7 +1327,8 @@ function doMbLogin() {
     btn.disabled = false; btn.textContent = 'Kết nối';
     if (xhr.status === 200) {
       mbToken = token;
-      localStorage.setItem('mb_session', token);
+      // Only store validated UUID tokens — per security-rules.md
+      if (isValidToken(token)) localStorage.setItem('mb_session', token);
       showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
       loadMbVol();
     } else {
@@ -1514,11 +1716,10 @@ function renderFLTrendChart(vd) {
 // INIT
 // ═══════════════════════════════════════════════
 (function init() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlToken = urlParams.get('token');
-  if (urlToken) {
-    localStorage.setItem('mb_session', urlToken);
-  }
+  // SECURITY: Token is NEVER accepted from URL parameters.
+  // Passing secrets in URLs leaks them to server logs, browser history,
+  // and Referer headers. — per security-rules.md "Secrets" section.
+
   const saved = localStorage.getItem('mb_session');
 
   render();
@@ -1533,6 +1734,12 @@ function renderFLTrendChart(vd) {
     document.getElementById('mb-panel').style.display = 'none';
     loadMbVol();
   } else if (saved) {
+    // Validate token format before using — per security-rules.md
+    if (!isValidToken(saved)) {
+      localStorage.removeItem('mb_session');
+      console.warn('[MB] Removed invalid token from localStorage');
+      return;
+    }
     const vxhr = new XMLHttpRequest();
     vxhr.open('GET', `${MB_PROXY}/api/user/current`, true);
     vxhr.setRequestHeader('X-Metabase-Session', saved);
@@ -1553,5 +1760,176 @@ function renderFLTrendChart(vd) {
   }
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════
+     GOOGLE SSO AUTH — @ghn.vn only
+     ═══════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────
+// CONFIG — Replace with your actual Google OAuth Client ID
+// How to get one: https://console.cloud.google.com
+//   → APIs & Services → Credentials → Create OAuth 2.0 Client ID
+//   → Web application → Add "https://xnamlaighn-bit.github.io" to Authorized origins
+// ─────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '875628384453-m6e0pn20peaqp3g5occ4kkcm2eoengir.apps.googleusercontent.com';
+
+const ALLOWED_DOMAIN = 'ghn.vn';
+
+// ─────────────────────────────────────────────────
+// Decode JWT credential returned by Google
+// ─────────────────────────────────────────────────
+function parseJwt(token) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch { return null; }
+}
+
+// ─────────────────────────────────────────────────
+// Show the dashboard after successful auth
+// ─────────────────────────────────────────────────
+function showDashboard(payload) {
+  const name   = escHtml(payload.name  || payload.email || 'Người dùng');
+  const email  = payload.email || '';
+  const avatar = payload.picture || '';
+
+  // Update user pill in header
+  const pill   = document.getElementById('user-pill');
+  const avatar_el = document.getElementById('user-avatar');
+  const avatar_fb = document.getElementById('user-avatar-fb');
+  const name_el = document.getElementById('user-name');
+
+  if (avatar) {
+    avatar_el.src = avatar;
+    avatar_el.style.display = 'block';
+  } else {
+    avatar_fb.textContent = (payload.name || 'U')[0].toUpperCase();
+    avatar_fb.style.display = 'flex';
+  }
+  name_el.textContent = payload.given_name || payload.name || email;
+  pill.style.display = 'flex';
+
+  // Hide overlay, show app
+  const overlay = document.getElementById('auth-overlay');
+  const app     = document.getElementById('app-wrap');
+  overlay.classList.add('hidden');
+  app.style.display = 'block';
+
+  console.log('[AUTH] Đăng nhập thành công:', email);
+}
+
+// ─────────────────────────────────────────────────
+// Handle credential response from Google
+// ─────────────────────────────────────────────────
+function handleCredentialResponse(response) {
+  const payload = parseJwt(response.credential);
+  if (!payload) {
+    showAuthError('❌ Không thể đọc thông tin từ Google. Vui lòng thử lại.');
+    return;
+  }
+
+  const email = payload.email || '';
+
+  // Enforce @ghn.vn domain — per security-rules.md "Authentication & Authorization"
+  if (!email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN)) {
+    showAuthError(`❌ Email "${escHtml(email)}" không thuộc miền @${ALLOWED_DOMAIN}.\nChỉ tài khoản GHN mới được truy cập.`);
+    // Sign out from Google to clear the session
+    if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+    return;
+  }
+
+  // Valid — store session info (sessionStorage: clears on tab close)
+  sessionStorage.setItem('ghn_auth', JSON.stringify({
+    email, name: payload.name, picture: payload.picture,
+    exp: payload.exp
+  }));
+
+  showDashboard(payload);
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+// ─────────────────────────────────────────────────
+// Trigger Google Sign-In popup
+// ─────────────────────────────────────────────────
+function triggerGoogleSignIn() {
+  if (GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
+    showAuthError('⚙️ Chưa cấu hình Google Client ID. Xem file index.html → const GOOGLE_CLIENT_ID.');
+    return;
+  }
+  if (window.google?.accounts?.id) {
+    google.accounts.id.prompt();
+  } else {
+    showAuthError('❌ Google Sign-In chưa tải xong. Vui lòng chờ vài giây rồi thử lại.');
+  }
+}
+
+// ─────────────────────────────────────────────────
+// Sign Out
+// ─────────────────────────────────────────────────
+function doSignOut() {
+  sessionStorage.removeItem('ghn_auth');
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+
+  // Hide app, show overlay
+  document.getElementById('app-wrap').style.display = 'none';
+  const overlay = document.getElementById('auth-overlay');
+  overlay.classList.remove('hidden');
+
+  // Reset error + hide user pill
+  document.getElementById('auth-error').classList.remove('show');
+  document.getElementById('user-pill').style.display = 'none';
+  console.log('[AUTH] Đã đăng xuất');
+}
+
+// ─────────────────────────────────────────────────
+// Initialize Google Identity Services
+// ─────────────────────────────────────────────────
+function initGoogleAuth() {
+  if (!window.google?.accounts?.id) {
+    setTimeout(initGoogleAuth, 200); // wait for GSI script to load
+    return;
+  }
+
+  if (GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
+    console.warn('[AUTH] Google Client ID chưa được cấu hình. Tính năng đăng nhập chưa hoạt động.');
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id:              GOOGLE_CLIENT_ID,
+    callback:               handleCredentialResponse,
+    hosted_domain:          ALLOWED_DOMAIN, // restrict picker to @ghn.vn accounts
+    auto_select:            true,           // auto sign-in if 1 matching session
+    cancel_on_tap_outside:  false,
+  });
+
+  // Check if already authenticated in this session
+  const saved = sessionStorage.getItem('ghn_auth');
+  if (saved) {
+    try {
+      const info = JSON.parse(saved);
+      const nowSec = Math.floor(Date.now() / 1000);
+      // Re-validate: check domain + expiry (Google tokens expire ~1hr)
+      if (info.email && info.email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN) && info.exp > nowSec) {
+        showDashboard(info);
+        return; // skip showing overlay
+      }
+    } catch { /* invalid saved data — fall through to show overlay */ }
+    sessionStorage.removeItem('ghn_auth');
+  }
+
+  // No valid session — trigger One Tap prompt
+  google.accounts.id.prompt();
+}
+
+// Boot auth on page load
+window.addEventListener('DOMContentLoaded', initGoogleAuth);
+</script>
+</div><!-- /#app-wrap -->
 </body>
 </html>
