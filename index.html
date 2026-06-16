@@ -1856,7 +1856,7 @@ function showAuthError(msg) {
 // Trigger fallback (if renderButton not rendered yet)
 function triggerGoogleSignIn() {
   // Generate nonce to prevent CSRF/replay — per security-rules.md
-  const nonce = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
+  const nonce = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2);
   sessionStorage.setItem('ghn_nonce', nonce);
 
   const redirectUri = window.location.origin + window.location.pathname;
