@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thông Báo Điều Tiết Hàng Hóa Bưu Cục · KTC HN02</title>
+
+  <!-- ═══ SECURITY HEADERS (per security-rules.md) ═══════════════════════ -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+             script-src 'self' 'unsafe-inline' https://accounts.google.com;
+             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+             font-src https://fonts.gstatic.com;
+             img-src 'self' https://cdn.hstatic.net https://lh3.googleusercontent.com data:;
+             connect-src 'self' https://accounts.google.com;
+             frame-src https://accounts.google.com;
+             frame-ancestors 'none';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Google Identity Services — for @ghn.vn SSO -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      width: 100%;
+      max-width: 720px;
+      overflow: hidden;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(135deg, #1a2e5a 0%, #2d4a8a 100%);
+      color: #fff;
+      text-align: center;
+      padding: 20px 16px 16px;
+    }
+    .header-icon { font-size: 28px; margin-bottom: 6px; }
+    .header h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      line-height: 1.35;
+    }
+    .header-sub {
+      margin-top: 10px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .header-sub .highlight { color: #ffd54f; }
+
+    /* ===== SECTION ===== */
+    .section { padding: 0; }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 10px 16px;
+      border-top: 1px solid #e8ecf0;
+    }
+
+    .section-title.group1 {
+      background: #fff3f3;
+      color: #c0392b;
+      border-left: 4px solid #e74c3c;
+    }
+    .section-title.group2 {
+      background: #f0fff4;
+      color: #1a7a3a;
+      border-left: 4px solid #27ae60;
+    }
+
+    .dot-red  { display:inline-block; width:12px;height:12px;border-radius:50%;background:#e74c3c;flex-shrink:0; }
+    .dot-green{ display:inline-block; width:12px;height:12px;border-radius:50%;background:#27ae60;flex-shrink:0; }
+
+    /* ===== TABLE ===== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr {
+      background: #2d4a8a;
+      color: #fff;
+    }
+    thead th {
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    thead th:first-child { width: 44px; text-align: center; }
+
+    tbody tr:nth-child(even) { background: #f8f9fb; }
+    tbody tr:hover { background: #eef2ff; transition: background 0.15s; }
+    tbody td { padding: 9px 12px; color: #2c3e50; vertical-align: middle; }
+    tbody td:first-child { text-align: center; font-weight: 700; color: #2d4a8a; }
+
+    .ma-bc {
+      font-weight: 700;
+      color: #1a2e5a;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .badge-new {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #1b5e20;
+      border: 1px solid #81c784;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      vertical-align: middle;
+      text-transform: uppercase;
+    }
+    .badge-keep {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #4b5563;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      vertical-align: middle;
+      text-transform: uppercase;
+    }
+
+    /* ===== TIKTOK HIGHLIGHT ===== */
+    .tiktok-highlight {
+      background: linear-gradient(135deg, #fff0f0, #fff8f0);
+      border: 2px solid #ff4444;
+      border-radius: 10px;
+      margin: 12px 16px;
+      padding: 12px 14px;
+    }
+    .tiktok-highlight .tt-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #c0392b;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .tiktok-highlight .tt-body {
+      font-size: 14px;
+      color: #444;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    /* ===== GROUP UPDATE BOX ===== */
+    .update-box {
+      background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+      border: 2px solid #66bb6a;
+      border-radius: 10px;
+      margin: 12px 16px;
+      padding: 16px 14px;
+    }
+    .update-box .ub-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1b5e20;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .update-box .ub-body {
+      font-size: 14px;
+      color: #2c3e50;
+      font-weight: 500;
+      line-height: 1.7;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: #f8f9fb;
+      border-top: 1px solid #e8ecf0;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #7f8c8d;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ===== DIVIDER ===== */
+    .divider { height: 8px; background: #f0f2f5; }
+
+    /* ─── AUTH OVERLAY ─── */
+    #auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 40%, #16213e 70%, #0f3460 100%);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      transition: opacity .4s ease, visibility .4s ease;
+    }
+    #auth-overlay.hidden {
+      opacity: 0; visibility: hidden; pointer-events: none;
+    }
+    .auth-bg-grid {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    }
+    .auth-bg-grid::before {
+      content: '';
+      position: absolute; inset: -50%;
+      background: radial-gradient(ellipse at 30% 50%, rgba(255,108,10,.12) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 20%, rgba(0,126,212,.10) 0%, transparent 55%),
+                  radial-gradient(ellipse at 60% 80%, rgba(124,58,237,.08) 0%, transparent 50%);
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.1) rotate(3deg); } }
+
+    .auth-card {
+      position: relative; z-index: 1;
+      background: rgba(255,255,255,.97);
+      border-radius: 24px;
+      padding: 48px 44px 40px;
+      width: 100%; max-width: 420px;
+      margin: 16px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
+      text-align: center;
+      animation: cardIn .5s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes cardIn { from { opacity:0; transform: translateY(32px) scale(.96); } to { opacity:1; transform: none; } }
+
+    .auth-logo-wrap {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #FF6C0A, #FF4500);
+      border-radius: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 32px rgba(255,108,10,.35);
+    }
+    .auth-logo-wrap img { height: 44px; object-fit: contain; filter: brightness(0) invert(1); }
+
+    .auth-title {
+      font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 6px; letter-spacing: -.3px;
+    }
+    .auth-subtitle {
+      font-size: 13px; color: #6B7280; margin-bottom: 28px; line-height: 1.6;
+    }
+    .auth-divider {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: #E5E7EB;
+    }
+    .auth-divider span { font-size: 11px; color: #9CA3AF; font-weight: 500; white-space: nowrap; }
+
+    #google-signin-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px 20px;
+      background: white; color: #374151;
+      border: 2px solid #E5E7EB; border-radius: 12px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    #google-signin-btn:hover {
+      border-color: #FF6C0A; color: #FF6C0A;
+      box-shadow: 0 4px 16px rgba(255,108,10,.12);
+      transform: translateY(-1px);
+    }
+    #google-signin-btn:active { transform: translateY(0); }
+    #google-signin-btn svg { flex-shrink: 0; }
+
+    .auth-restriction {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 20px; padding: 10px 16px;
+      background: #FFF3EC; border: 1px solid #FFD4B0; border-radius: 10px;
+      font-size: 12px; color: #FF6C0A; font-weight: 600;
+    }
+
+    .auth-error {
+      margin-top: 16px; padding: 10px 16px;
+      background: #FDECEA; border: 1px solid #FCCAC9; border-radius: 10px;
+      font-size: 12px; color: #E53935; font-weight: 600;
+      display: none;
+    }
+    .auth-error.show { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay">
+  <div class="auth-bg-grid"></div>
+  <div class="auth-card">
+    <div class="auth-logo-wrap">
+      <img src="https://cdn.hstatic.net/themes/200000472237/1001423864/14/logo.png?v=2850" alt="GHN">
+    </div>
+    <div class="auth-title">KTC HN02 Dashboard</div>
+    <div class="auth-subtitle">Thông Báo Điều Tiết Hàng Hóa Bưu Cục<br>GHN — Kho Trung Chuyển Hà Nội 02</div>
+
+    <div class="auth-divider"><span>Đăng nhập để tiếp tục</span></div>
+
+    <button id="google-signin-btn" onclick="triggerGoogleSignIn()">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Đăng nhập với Google
+    </button>
+
+    <div class="auth-restriction">
+      <span>🔒</span> Chỉ dành cho email <strong>@ghn.vn</strong>
+    </div>
+
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<div class="card" id="app-wrap" style="display:none">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-icon">📦</div>
+    <h1>Thông Báo Điều Tiết Hàng Hóa Bưu Cục</h1>
+    <div class="header-sub">
+      ⏰ Thời gian áp dụng: Đến hết ngày <span class="highlight">10/06</span>
+    </div>
+  </div>
+
+  <!-- ===== NHÓM 1: ĐIỀU TIẾT 7 BƯU CỤC ===== -->
+  <div class="section">
+    <div class="section-title group1">
+      <span class="dot-red"></span>
+      ĐIỀU TIẾT 7 BƯU CỤC — CHỈ XUẤT TIKTOKSHOP
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th>Mã BC</th>
+          <th>Tên Bưu Cục</th>
+          <th>Trạng Thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 4 bc giữ nguyên -->
+        <tr>
+          <td>1</td>
+          <td class="ma-bc">20182000</td>
+          <td>BC 171 Đồng Cam – Thạch Thất – Hà Nội</td>
+          <td><span class="badge-keep">Giữ nguyên</span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td class="ma-bc">20097000</td>
+          <td>BC Thạch Hòa – Thạch Thất – Hà Nội</td>
+          <td><span class="badge-keep">Giữ nguyên</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td class="ma-bc">21562000</td>
+          <td>BC Cổ Dương – Tiên Dương – Đông Anh – HN</td>
+          <td><span class="badge-keep">Giữ nguyên</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td class="ma-bc">2475</td>
+          <td>BC 15 Hàng Bún – Q.Ba Đình – HN</td>
+          <td><span class="badge-keep">Giữ nguyên</span></td>
+        </tr>
+        <!-- 3 bc bổ sung -->
+        <tr>
+          <td>5</td>
+          <td class="ma-bc">20099000</td>
+          <td>BC 148 Trâu Quỳ – Gia Lâm – HN</td>
+          <td><span class="badge-new">Bổ sung</span></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td class="ma-bc">2503</td>
+          <td>BC 41 Trần Quốc Vượng – Q.Cầu Giấy – HN</td>
+          <td><span class="badge-new">Bổ sung</span></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td class="ma-bc">20199000</td>
+          <td>BC Thôn Đông – Ba Vì – Hà Nội</td>
+          <td><span class="badge-new">Bổ sung</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Chú thích TikTokShop -->
+    <div class="tiktok-highlight">
+      <div class="tt-title">🛒 PHƯƠNG ÁN VẬN HÀNH</div>
+      <div class="tt-body">
+        <strong>Xuất MAX hàng xuất Ca 1, Ca 2. TUY NHIÊN CHỈ XUẤT HÀNG TIKTOKSHOP.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== NHÓM 2: BƯU CỤC CỒNG KỀNH (BÌNH THƯỜNG) ===== -->
+  <div class="section">
+    <div class="section-title group2">
+      <span class="dot-green"></span>
+      CẬP NHẬT BƯU CỤC CỒNG KỀNH (TỪ 04/06)
+    </div>
+
+    <div class="update-box">
+      <div class="ub-title">✅ TRỞ LẠI BÌNH THƯỜNG</div>
+      <div class="ub-body">
+        <strong>2 BC Công Kềnh:</strong><br/>
+        • 20513000 - Quan Hoa (Q.Cầu Giấy - HN)<br/>
+        • 22974000 - Hồng Đô (Q.Nam Từ Liêm - HN)<br/><br/>
+        👉 Bắt đầu <strong>xuất MAX CAP bình thường</strong>.<br/>
+        📦 Cho hàng về <strong>cả 2 Ca</strong> từ ngày <strong>04/06</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    📅 Cập nhật: 03/06/2026 &nbsp;|&nbsp; Báo cáo điều tiết hàng hóa bưu cục
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     GOOGLE SSO AUTH — @ghn.vn only
+     ═══════════════════════════════════════════════ -->
+<script>
+const GOOGLE_CLIENT_ID = '875628384453-m6e0pn20peaqp3g5occ4kkcm2eoengir.apps.googleusercontent.com';
+const ALLOWED_DOMAIN = 'ghn.vn';
+
+function escHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseJwt(token) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch { return null; }
+}
+
+function showDashboard(payload) {
+  const overlay = document.getElementById('auth-overlay');
+  const app     = document.getElementById('app-wrap');
+  if (overlay) overlay.classList.add('hidden');
+  if (app) app.style.display = 'block';
+  console.log('[AUTH] Đăng nhập thành công:', payload.email);
+}
+
+function handleCredentialResponse(response) {
+  const payload = parseJwt(response.credential);
+  if (!payload) {
+    showAuthError('❌ Không thể đọc thông tin từ Google. Vui lòng thử lại.');
+    return;
+  }
+  const email = payload.email || '';
+  if (!email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN)) {
+    showAuthError(`❌ Email "${escHtml(email)}" không thuộc miền @${ALLOWED_DOMAIN}.\nChỉ tài khoản GHN mới được truy cập.`);
+    return;
+  }
+  sessionStorage.setItem('ghn_auth', JSON.stringify({
+    email, name: payload.name, picture: payload.picture, exp: payload.exp
+  }));
+  showDashboard(payload);
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (el) {
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+}
+
+function triggerGoogleSignIn() {
+  const nonce = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
+  sessionStorage.setItem('ghn_nonce', nonce);
+
+  const redirectUri = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams({
+    client_id:     GOOGLE_CLIENT_ID,
+    redirect_uri:  redirectUri,
+    response_type: 'id_token',
+    scope:         'openid email profile',
+    nonce:         nonce,
+    hd:            ALLOWED_DOMAIN,
+    prompt:        'select_account'
+  });
+
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+function checkRedirectResult() {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  const idToken = hash.get('id_token');
+  if (!idToken) return false;
+
+  history.replaceState(null, '', window.location.pathname);
+
+  const payload = parseJwt(idToken);
+  if (!payload) {
+    showAuthError('❌ Không đọc được thông tin từ Google. Vui lòng thử lại.');
+    return true;
+  }
+
+  const savedNonce = sessionStorage.getItem('ghn_nonce');
+  if (savedNonce && payload.nonce !== savedNonce) {
+    showAuthError('❌ Xác thực thất bại (nonce mismatch). Vui lòng thử lại.');
+    return true;
+  }
+  sessionStorage.removeItem('ghn_nonce');
+
+  const email = payload.email || '';
+  if (!email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN)) {
+    showAuthError(`❌ Email "${escHtml(email)}" không thuộc miền @${ALLOWED_DOMAIN}.`);
+    return true;
+  }
+
+  sessionStorage.setItem('ghn_auth', JSON.stringify({
+    email, name: payload.name, picture: payload.picture, exp: payload.exp
+  }));
+  showDashboard(payload);
+  return true;
+}
+
+function initGoogleAuth() {
+  if (checkRedirectResult()) return;
+
+  const saved = sessionStorage.getItem('ghn_auth');
+  if (saved) {
+    try {
+      const info = JSON.parse(saved);
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (info.email && info.email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN) && info.exp > nowSec) {
+        showDashboard(info);
+        return;
+      }
+    } catch { /* invalid */ }
+    sessionStorage.removeItem('ghn_auth');
+  }
+}
+
+window.addEventListener('DOMContentLoaded', initGoogleAuth);
+</script>
+</body>
+</html>
