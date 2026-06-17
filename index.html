@@ -11,13 +11,12 @@
   <!-- Content Security Policy: whitelist only trusted sources -->
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self';
-             script-src 'self' https://cdn.jsdelivr.net https://accounts.google.com;
+             script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com;
              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
              font-src https://fonts.gstatic.com;
              img-src 'self' https://cdn.hstatic.net https://lh3.googleusercontent.com data:;
              connect-src 'self' https://docs.google.com https://bao-cao-ktc-hn02.onrender.com https://data-bi.ghn.vn https://accounts.google.com;
-             frame-src https://accounts.google.com;
-             frame-ancestors 'none';">
+             frame-src https://accounts.google.com;">
   <!-- Prevent MIME-type sniffing -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <!-- Control Referer header — do not leak token via referrer -->
@@ -616,6 +615,33 @@
 </div><!-- .wrap -->
 
 <script>
+// Safe localStorage & sessionStorage wrappers to prevent DOMExceptions in incognito/guest mode
+const safeLocalStorage = {
+  getItem(key) {
+    try { return localStorage.getItem(key); } catch (e) { return this._data[key] || null; }
+  },
+  setItem(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { this._data[key] = String(value); }
+  },
+  removeItem(key) {
+    try { localStorage.removeItem(key); } catch (e) { delete this._data[key]; }
+  },
+  _data: {}
+};
+
+const safeSessionStorage = {
+  getItem(key) {
+    try { return sessionStorage.getItem(key); } catch (e) { return this._data[key] || null; }
+  },
+  setItem(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (e) { this._data[key] = String(value); }
+  },
+  removeItem(key) {
+    try { sessionStorage.removeItem(key); } catch (e) { delete this._data[key]; }
+  },
+  _data: {}
+};
+
 // ═══════════════════════════════════════════════
 // SECURITY UTILITY — per security-rules.md
 // "Never render user-supplied input as raw HTML"
@@ -1328,7 +1354,7 @@ function doMbLogin() {
     if (xhr.status === 200) {
       mbToken = token;
       // Only store validated UUID tokens — per security-rules.md
-      if (isValidToken(token)) localStorage.setItem('mb_session', token);
+      if (isValidToken(token)) safeLocalStorage.setItem('mb_session', token);
       showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
       loadMbVol();
     } else {
@@ -1361,7 +1387,7 @@ function loadMbVol() {
   xhr.onload = () => {
     if (xhr.status !== 200) {
       if ((xhr.status === 401 || xhr.status === 403) && mbToken !== 'auto-session') {
-        localStorage.removeItem('mb_session');
+        safeLocalStorage.removeItem('mb_session');
         mbToken = '';
         document.getElementById('mb-panel').style.display = 'block';
         showMbStatus('⚠️ Token hết hạn. Vui lòng kết nối lại.', 'err');
@@ -1720,7 +1746,7 @@ function renderFLTrendChart(vd) {
   // Passing secrets in URLs leaks them to server logs, browser history,
   // and Referer headers. — per security-rules.md "Secrets" section.
 
-  const saved = localStorage.getItem('mb_session');
+  const saved = safeLocalStorage.getItem('mb_session');
 
   render();
   loadSheets();
@@ -1736,7 +1762,7 @@ function renderFLTrendChart(vd) {
   } else if (saved) {
     // Validate token format before using — per security-rules.md
     if (!isValidToken(saved)) {
-      localStorage.removeItem('mb_session');
+      safeLocalStorage.removeItem('mb_session');
       console.warn('[MB] Removed invalid token from localStorage');
       return;
     }
@@ -1750,7 +1776,7 @@ function renderFLTrendChart(vd) {
         mbToken = saved;
         loadMbVol();
       } else {
-        localStorage.removeItem('mb_session');
+        safeLocalStorage.removeItem('mb_session');
         mbToken = '';
         console.log('[MB] Saved token expired');
       }
@@ -1839,7 +1865,7 @@ function handleCredentialResponse(response) {
   }
 
   // Valid — store session info (sessionStorage: clears on tab close)
-  sessionStorage.setItem('ghn_auth', JSON.stringify({
+  safeSessionStorage.setItem('ghn_auth', JSON.stringify({
     email, name: payload.name, picture: payload.picture,
     exp: payload.exp
   }));
@@ -1857,7 +1883,7 @@ function showAuthError(msg) {
 function triggerGoogleSignIn() {
   // Generate nonce to prevent CSRF/replay — per security-rules.md
   const nonce = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2);
-  sessionStorage.setItem('ghn_nonce', nonce);
+  safeSessionStorage.setItem('ghn_nonce', nonce);
 
   const redirectUri = window.location.origin + window.location.pathname;
   const params = new URLSearchParams({
@@ -1892,12 +1918,12 @@ function checkRedirectResult() {
   }
 
   // Validate nonce — CSRF protection
-  const savedNonce = sessionStorage.getItem('ghn_nonce');
+  const savedNonce = safeSessionStorage.getItem('ghn_nonce');
   if (savedNonce && payload.nonce !== savedNonce) {
     showAuthError('❌ Xác thực thất bại (nonce mismatch). Vui lòng thử lại.');
     return true;
   }
-  sessionStorage.removeItem('ghn_nonce');
+  safeSessionStorage.removeItem('ghn_nonce');
 
   // Validate domain
   const email = payload.email || '';
@@ -1907,7 +1933,7 @@ function checkRedirectResult() {
   }
 
   // Save session and show dashboard
-  sessionStorage.setItem('ghn_auth', JSON.stringify({
+  safeSessionStorage.setItem('ghn_auth', JSON.stringify({
     email, name: payload.name, picture: payload.picture, exp: payload.exp
   }));
   showDashboard(payload);
@@ -1918,7 +1944,7 @@ function checkRedirectResult() {
 // Sign Out
 // ───────────────────────────────────────────────
 function doSignOut() {
-  sessionStorage.removeItem('ghn_auth');
+  safeSessionStorage.removeItem('ghn_auth');
   document.getElementById('app-wrap').style.display = 'none';
   document.getElementById('auth-overlay').classList.remove('hidden');
   document.getElementById('auth-error').classList.remove('show');
@@ -1934,7 +1960,7 @@ function initGoogleAuth() {
   if (checkRedirectResult()) return;
 
   // 2. Check existing valid session in sessionStorage
-  const saved = sessionStorage.getItem('ghn_auth');
+  const saved = safeSessionStorage.getItem('ghn_auth');
   if (saved) {
     try {
       const info = JSON.parse(saved);
@@ -1944,7 +1970,7 @@ function initGoogleAuth() {
         return;
       }
     } catch { /* invalid — fall through */ }
-    sessionStorage.removeItem('ghn_auth');
+    safeSessionStorage.removeItem('ghn_auth');
   }
 
   // 3. No session — show login overlay (already visible by default)
@@ -1954,6 +1980,5 @@ function initGoogleAuth() {
 // Boot auth on page load
 window.addEventListener('DOMContentLoaded', initGoogleAuth);
 </script>
-</div><!-- /#app-wrap -->
 </body>
 </html>
