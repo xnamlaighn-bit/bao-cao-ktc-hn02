@@ -32,12 +32,21 @@ _CORS_ALLOWED = [
     'http://127.0.0.1:8888',
 ]
 
-# Rate limiting: max 60 requests per minute per IP
+# Rate limiting — per IP, per minute
 _rate_counter = collections.defaultdict(list)
-MAX_REQUESTS_PER_MIN = 60
+MAX_REQUESTS_PER_MIN     = 60   # general endpoints
+MAX_AUTH_REQUESTS_PER_MIN = 5   # auth endpoint (/mb-proxy/api/session) — stricter
+RATE_LIMIT_WINDOW = 60          # seconds
 
 # Max request body size: 64 KB
 MAX_BODY_SIZE = 64 * 1024
+
+# D4 — SSRF: allowlist specific Google Sheet IDs
+# Only these exact Sheet IDs can be fetched via /gs-proxy
+ALLOWED_SHEET_IDS = {
+    '1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc',  # Sheet NV (SHEET1)
+    '1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY',  # Sheet FL (SHEET2 + SHEET3)
+}
 
 class Handler(SimpleHTTPRequestHandler):
 
@@ -48,27 +57,32 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     # ── Rate limit check ────────────────────────────────────
-    def _check_rate_limit(self):
+    # R2: auth endpoint uses stricter limit; R3: include Retry-After header
+    def _check_rate_limit(self, is_auth_endpoint=False):
         ip = self.client_address[0]
+        # Use separate key for auth endpoint to apply stricter limit independently
+        key = f'{ip}:auth' if is_auth_endpoint else ip
         now = time.time()
-        window = _rate_counter[ip]
-        # Remove entries older than 60 seconds
-        _rate_counter[ip] = [t for t in window if now - t < 60]
-        if len(_rate_counter[ip]) >= MAX_REQUESTS_PER_MIN:
+        _rate_counter[key] = [t for t in _rate_counter[key] if now - t < RATE_LIMIT_WINDOW]
+        limit = MAX_AUTH_REQUESTS_PER_MIN if is_auth_endpoint else MAX_REQUESTS_PER_MIN
+        if len(_rate_counter[key]) >= limit:
             self.send_response(429)
             self._cors()
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Retry-After', str(RATE_LIMIT_WINDOW))  # R3
             self.end_headers()
-            self.wfile.write(json.dumps({'error': 'Rate limit exceeded'}).encode())
-            print(f'  ⚠️ [RATE LIMIT] IP {ip} blocked ({len(_rate_counter[ip])} req/min)')
+            self.wfile.write(json.dumps({'error': 'Too many requests. Please wait and try again.'}).encode())
+            print(f'  ⚠️ [RATE LIMIT] IP {ip} blocked ({len(_rate_counter[key])}/{limit} req/min, auth={is_auth_endpoint})')
             return False
-        _rate_counter[ip].append(now)
+        _rate_counter[key].append(now)
         return True
 
     # ── GET ───────────────────────────────────────────────
     def do_GET(self):
         if self.path.startswith(PROXY):
-            if not self._check_rate_limit(): return
+            # R2: apply stricter rate limit for the auth/session endpoint
+            is_auth = '/api/session' in self.path
+            if not self._check_rate_limit(is_auth_endpoint=is_auth): return
             self._relay('GET', None)
         elif self.path.startswith(GS_PROXY):
             if not self._check_rate_limit(): return
@@ -79,7 +93,9 @@ class Handler(SimpleHTTPRequestHandler):
     # ── POST ────────────────────────────────────────────────
     def do_POST(self):
         if self.path.startswith(PROXY):
-            if not self._check_rate_limit(): return
+            # R2: apply stricter rate limit for the auth/session endpoint
+            is_auth = '/api/session' in self.path
+            if not self._check_rate_limit(is_auth_endpoint=is_auth): return
             length = int(self.headers.get('Content-Length', 0))
             # Request size limit
             if length > MAX_BODY_SIZE:
@@ -165,47 +181,69 @@ class Handler(SimpleHTTPRequestHandler):
         except HTTPError as e:
             # Nếu token đã cache bị hết hạn (HTTP 401), xóa cache để lần sau login lại
             if e.code in [401, 403]:
-                print("  🔑 [AUTO-LOGIN] Token hết hạn (401/403). Xóa cache để login lại.")
+                print(f'  🔑 [AUTO-LOGIN] Token hết hạn ({e.code}). Xóa cache để login lại.')
                 global_vars['_mb_cached_token'] = None
-                
-            data = e.read()
-            print(f'  ← HTTP {e.code} from Metabase: {data[:200]}')
-            self.send_response(e.code)
-            self._cors()
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(data)
-
-        except Exception as e:
-            msg = str(e)
-            print(f'  ← ERROR: {msg}')
+            # S3: DO NOT log response body — may contain token/credential fragments
+            e.read()  # consume body to free connection, but do not log or forward
+            print(f'  <- HTTP {e.code} from Metabase')
+            # D2: return generic error — do not expose Metabase status codes to client
             self.send_response(502)
             self._cors()
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({'error': msg, 'url': target_url}).encode())
+            self.wfile.write(json.dumps({'error': 'Upstream error. Please check your token and try again.'}).encode())
+
+        except Exception as e:
+            # D2: log internally but never expose exception details or internal URLs to client
+            print(f'  <- PROXY ERROR: {type(e).__name__}')
+            self.send_response(502)
+            self._cors()
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Proxy error. Please try again.'}).encode())
 
     # ── Relay Google Sheets CSV ──────────────────────────
     def _relay_gs(self):
-        from urllib.parse import urlparse, parse_qs, unquote
+        from urllib.parse import parse_qs, unquote, urlparse
         qs = self.path.split('?', 1)
         params = parse_qs(qs[1]) if len(qs) > 1 else {}
         target_url = unquote(params.get('url', [''])[0])
 
+        # D4 — SSRF prevention: allowlist domain
         if not target_url.startswith('https://docs.google.com/'):
             self.send_response(400)
             self._cors()
+            self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(b'Only Google Sheets URLs allowed')
+            self.wfile.write(json.dumps({'error': 'Only Google Sheets URLs are allowed'}).encode())
             return
 
-        print(f'  → GS-PROXY GET {target_url[:80]}')
+        # D4 — SSRF prevention: allowlist specific Sheet IDs
+        # Extract the spreadsheet ID from the URL path
+        try:
+            path_parts = urlparse(target_url).path.split('/')
+            # URL format: /spreadsheets/d/{SHEET_ID}/export
+            d_idx = path_parts.index('d')
+            sheet_id = path_parts[d_idx + 1]
+        except (ValueError, IndexError):
+            sheet_id = ''
+
+        if sheet_id not in ALLOWED_SHEET_IDS:
+            print(f'  ⚠️ [GS-PROXY] Blocked non-allowlisted sheet ID: {sheet_id[:16]}...')
+            self.send_response(403)
+            self._cors()
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Sheet ID not in allowlist'}).encode())
+            return
+
+        print(f'  → GS-PROXY GET sheet={sheet_id[:8]}...')
         try:
             req = Request(target_url, headers={'User-Agent': 'Mozilla/5.0'})
             with urlopen(req, timeout=20) as r:
                 data = r.read()
                 ctype = r.headers.get('Content-Type', 'text/csv')
-                print(f'  ← GS {r.status} OK ({len(data)} bytes)')
+                print(f'  <- GS {r.status} OK ({len(data)} bytes)')
                 self.send_response(200)
                 self._cors()
                 self.send_header('Content-Type', ctype)
@@ -213,11 +251,13 @@ class Handler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
         except Exception as e:
-            print(f'  ← GS ERROR: {e}')
+            # D2: do not expose exception details to client
+            print(f'  <- GS ERROR: {type(e).__name__}')
             self.send_response(502)
             self._cors()
+            self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(str(e).encode())
+            self.wfile.write(json.dumps({'error': 'Failed to fetch sheet data'}).encode())
 
     def _cors(self):
         # Restrict CORS to specific allowed origins — no wildcard for token-handling endpoints
