@@ -615,6 +615,17 @@
 </div><!-- .wrap -->
 
 <script>
+// ═══════════════════════════════════════════════
+// H1 MITIGATION: Frame-busting — prevent clickjacking
+// (GitHub Pages can't set X-Frame-Options header, JS is the fallback)
+// ═══════════════════════════════════════════════
+(function() {
+  if (window.top !== window.self) {
+    try { window.top.location = window.self.location; } catch(e) {}
+    document.documentElement.style.display = 'none';
+  }
+})();
+
 // Safe localStorage & sessionStorage wrappers to prevent DOMExceptions in incognito/guest mode
 const safeLocalStorage = {
   getItem(key) {
@@ -1353,8 +1364,9 @@ function doMbLogin() {
     btn.disabled = false; btn.textContent = 'Kết nối';
     if (xhr.status === 200) {
       mbToken = token;
-      // Only store validated UUID tokens — per security-rules.md
-      if (isValidToken(token)) safeLocalStorage.setItem('mb_session', token);
+      // Store validated token in sessionStorage only (clears on tab close)
+      // Using sessionStorage instead of localStorage prevents long-term persistence — per security-rules.md
+      if (isValidToken(token)) safeSessionStorage.setItem('mb_session', token);
       showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
       loadMbVol();
     } else {
@@ -1387,7 +1399,7 @@ function loadMbVol() {
   xhr.onload = () => {
     if (xhr.status !== 200) {
       if ((xhr.status === 401 || xhr.status === 403) && mbToken !== 'auto-session') {
-        safeLocalStorage.removeItem('mb_session');
+        safeSessionStorage.removeItem('mb_session');
         mbToken = '';
         document.getElementById('mb-panel').style.display = 'block';
         showMbStatus('⚠️ Token hết hạn. Vui lòng kết nối lại.', 'err');
@@ -1746,7 +1758,8 @@ function renderFLTrendChart(vd) {
   // Passing secrets in URLs leaks them to server logs, browser history,
   // and Referer headers. — per security-rules.md "Secrets" section.
 
-  const saved = safeLocalStorage.getItem('mb_session');
+  // Use sessionStorage (not localStorage) to avoid long-term token persistence
+  const saved = safeSessionStorage.getItem('mb_session');
 
   render();
   loadSheets();
@@ -1776,7 +1789,7 @@ function renderFLTrendChart(vd) {
         mbToken = saved;
         loadMbVol();
       } else {
-        safeLocalStorage.removeItem('mb_session');
+        safeSessionStorage.removeItem('mb_session');
         mbToken = '';
         console.log('[MB] Saved token expired');
       }
@@ -1851,6 +1864,36 @@ function handleCredentialResponse(response) {
   const payload = parseJwt(response.credential);
   if (!payload) {
     showAuthError('❌ Không thể đọc thông tin từ Google. Vui lòng thử lại.');
+    return;
+  }
+
+  // — Additional JWT payload validation (C1 mitigation) —
+  // Note: This does NOT verify the JWT cryptographic signature (that requires server-side).
+  // These checks prevent trivially fake payloads (e.g. attacker-crafted base64 JWTs).
+
+  // 1. Verify audience (aud) matches our Client ID — prevents tokens from other apps
+  const audValid = Array.isArray(payload.aud)
+    ? payload.aud.includes(GOOGLE_CLIENT_ID)
+    : payload.aud === GOOGLE_CLIENT_ID;
+  if (!audValid) {
+    showAuthError('❌ Xác thực thất bại (invalid audience). Vui lòng thử lại.');
+    console.warn('[AUTH] JWT aud mismatch:', payload.aud);
+    return;
+  }
+
+  // 2. Verify issuer (iss) is Google
+  const validIssuers = ['https://accounts.google.com', 'accounts.google.com'];
+  if (!validIssuers.includes(payload.iss)) {
+    showAuthError('❌ Xác thực thất bại (invalid issuer). Vui lòng thử lại.');
+    console.warn('[AUTH] JWT iss mismatch:', payload.iss);
+    return;
+  }
+
+  // 3. Verify token is not expired
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!payload.exp || payload.exp <= nowSec) {
+    showAuthError('❌ Token đã hết hạn. Vui lòng đăng nhập lại.');
+    console.warn('[AUTH] JWT expired at:', payload.exp, '| now:', nowSec);
     return;
   }
 

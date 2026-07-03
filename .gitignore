@@ -1,0 +1,23 @@
+# ══════════════════════════════════════════════════════════════
+# .gitignore — KTC HN02 Dashboard
+# ══════════════════════════════════════════════════════════════
+
+# Environment variables — NEVER commit credentials to Git!
+.env
+.env.local
+.env.production
+.env.staging
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Logs
+*.log
