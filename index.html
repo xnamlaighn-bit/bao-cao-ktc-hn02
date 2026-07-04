@@ -15,7 +15,7 @@
              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
              font-src https://fonts.gstatic.com;
              img-src 'self' https://cdn.hstatic.net https://lh3.googleusercontent.com data:;
-             connect-src 'self' https://docs.google.com https://bao-cao-ktc-hn02.onrender.com https://data-bi.ghn.vn https://accounts.google.com;
+             connect-src 'self' https://docs.google.com https://accounts.google.com;
              frame-src https://accounts.google.com;">
   <!-- Prevent MIME-type sniffing -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -171,48 +171,6 @@
       background: var(--orange-bg); transition: all .15s;
     }
     .datenav-today:hover { background: var(--orange); color: white; }
-
-    /* ─── METABASE PANEL ─── */
-    .mb-panel {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
-    }
-    .mb-panel h2 { font-size: 14px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
-    .mb-panel p  { font-size: 12px; color: var(--t2); margin-bottom: 10px; }
-    .mb-guide {
-      background: var(--blue-bg);
-      border: 1px solid #BFD9F0;
-      border-radius: 8px; padding: 10px 14px;
-      font-size: 12px; color: var(--t2); line-height: 1.7;
-      margin-bottom: 12px;
-    }
-    .mb-row { display: flex; gap: 8px; align-items: center; }
-    .mb-row input {
-      flex: 1; max-width: 480px;
-      border: 1.5px solid var(--border2); border-radius: 8px;
-      padding: 9px 14px; font-family: inherit; font-size: 13px;
-      color: var(--t1); outline: none; transition: border-color .15s;
-    }
-    .mb-row input:focus { border-color: var(--orange); }
-    .btn-orange {
-      background: var(--orange); color: white; border: none;
-      border-radius: 8px; padding: 9px 20px;
-      font-family: inherit; font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: background .15s;
-    }
-    .btn-orange:hover { background: var(--orange2); }
-    .btn-gray {
-      background: var(--surface); color: var(--t2);
-      border: 1.5px solid var(--border2);
-      border-radius: 8px; padding: 9px 16px;
-      font-family: inherit; font-size: 13px; font-weight: 600;
-      cursor: pointer; transition: all .15s;
-    }
-    .btn-gray:hover { border-color: var(--t2); color: var(--t1); }
-    .mb-status { font-size: 12px; margin-top: 8px; padding: 8px 12px; border-radius: 6px; }
-    .mb-status.ok  { background: var(--green-bg); color: var(--green); }
-    .mb-status.err { background: var(--red-bg); color: var(--red); }
 
     /* ─── MAIN WRAP ─── */
     .wrap { max-width: 1200px; margin: 0 auto; padding: 0; }
@@ -542,7 +500,7 @@
       <div class="hdr-divider"></div>
       <div>
         <div class="hdr-title">Báo Cáo Vận Hành · KTC HN02</div>
-        <div class="hdr-sub">Nhân sự · FL đáp ứng · Sản lượng nhập kho</div>
+        <div class="hdr-sub">Nhân sự · Freelancer đáp ứng</div>
       </div>
     </div>
     <div class="hdr-right">
@@ -584,23 +542,6 @@
     <span class="datenav-today" onclick="goToday()">Hôm qua</span>
   </div>
 
-  <!-- METABASE PANEL -->
-  <div class="mb-panel" id="mb-panel">
-    <h2>🔑 Kết nối Metabase — Sản lượng nhập kho</h2>
-    <p>Dán Session Token từ cookie để tự động kéo số liệu. Token hợp lệ vài ngày đến vài tuần.</p>
-    <div class="mb-guide">
-      <strong>MacBook (Safari):</strong> Vào <strong>data-bi.ghn.vn</strong> → đăng nhập Google →
-      Develop menu → <strong>Show Web Inspector</strong> → tab <strong>Mạng</strong> → reload trang →
-      click request bất kỳ → Headers → tìm <strong>Cookie:</strong> → copy giá trị sau <strong>metabase.SESSION=</strong>
-      <br>(Nếu chưa có Develop menu: Safari → Settings → Advanced → bật "Show features for web developers")
-    </div>
-    <div class="mb-row">
-      <input type="password" id="mb-token" placeholder="Dán token vào đây...">
-      <button class="btn-orange" id="mb-btn" onclick="doMbLogin()">Kết nối</button>
-      <button class="btn-gray" onclick="doSkip()">Bỏ qua</button>
-    </div>
-    <div class="mb-status" id="mb-status" style="display:none"></div>
-  </div>
 
   <!-- MAIN CONTENT -->
   <div class="page-body">
@@ -666,11 +607,7 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// Validate Metabase session token — must be UUID format
-// Prevents using arbitrary values stored in localStorage
-function isValidToken(token) {
-  return typeof token === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
-}
+
 
 // ═══════════════════════════════════════════════
 // CONFIG
@@ -678,12 +615,6 @@ function isValidToken(token) {
 const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc/export?format=csv&gid=1878142111';
 const SHEET2 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=1455372314';
 const SHEET3 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=2127051141';
-const MB_HOST  = 'https://data-bi.ghn.vn';
-const MB_DASH  = 143;
-let MB_PROXY = (function() {
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  return isLocal ? '/mb-proxy' : 'https://bao-cao-ktc-hn02.onrender.com/mb-proxy';
-})();
 
 // ═══════════════════════════════════════════════
 // STATE
@@ -691,9 +622,6 @@ let MB_PROXY = (function() {
 let nvData = {};
 let flData = {};
 let flDxData = {};
-let mbVol  = null;
-let mbToken = '';
-let mbSkipped = false;
 let sheetsLoading = false;
 let currentTrendTab = 'hn02';
 
@@ -712,7 +640,6 @@ function setViewDate(d) {
   const inp   = document.getElementById('datenav-input');
   if (label) label.textContent = `${['CN','T2','T3','T4','T5','T6','T7'][viewDate.getDay()]}, ${dk.disp}`;
   if (inp)   inp.value = dk.iso;
-  mbVol = null;
   render();
 }
 function goDay(n) {
@@ -864,7 +791,6 @@ function render() {
     ${renderNVCard(vdK.s1)}
     ${renderFLCard(vdK.s2, flData, 'Freelancer (FL) - HN02')}
     ${renderFLCard(vdK.s2, flDxData, 'Freelancer (FL) - KTC DX')}
-    ${renderVolCard(vdK)}
   </div>
   
   <div class="card" style="margin-top: 16px;">
@@ -1006,55 +932,7 @@ function renderFLCard(dateK, data = flData, title = 'Freelancer (FL) - HN02') {
   </div>`;
 }
 
-// ═══════════════════════════════════════════════
-// RENDER: VOL CARD
-// slug thông số Xuất/Nhập (lưu để build link URL)
-// ═══════════════════════════════════════════════
-let mbXNSlug = 'in_out';
 
-function renderVolCard(dk) {
-  const dateParam = `ng%25C3%25A0y_theo_ca=${dk.iso}~${dk.iso}`;
-  const xnParam   = `xu%25E1%25BA%25A5t%252Fnh%25E1%25BA%25ADp=Nh%E1%BA%ADP`;
-  const mbLink = `${MB_HOST}/dashboard/${MB_DASH}?ca_lv=&kho=Kho+Trung+Chuy%E1%BB%83n+H%C3%A0+N%E1%BB%99i+02&${dateParam}&${xnParam}&tab=150-xu%E1%BA%A5t-nh%E1%BA%ADp`;
-
-  // Metabase update lúc 09:00 hàng ngày → dữ liệu ngày N-1
-  const isAfter9 = new Date().getHours() >= 9;
-
-  if (!mbVol) {
-    const note = !isAfter9
-      ? `<div class="fresh-badge warn">⏳ Dữ liệu sẽ cập nhật sau 09:00</div>`
-      : '';
-    return `<div class="card">
-      <div class="card-hdr">
-        <div class="card-icon" style="background:var(--blue-bg);font-size:20px">📦</div>
-        <div><div class="card-ttl">Sản Lượng Nhập Kho</div>
-        <div class="card-sub">Kho Trung Chuyển HN02 · ${dk.disp}</div></div>
-      </div>
-      ${note}
-      <div class="empty"><div class="empty-icon">🔑</div>Kết nối Metabase ở trên<br>để xem số liệu sản lượng</div>
-      <a href="${mbLink}" target="_blank" class="btn-link">📊 Mở Metabase Dashboard</a>
-    </div>`;
-  }
-
-  const hasSplit = mbVol.sm || mbVol.ck || mbVol.hv;
-  const pct = v => mbVol.total > 0 ? Math.round(v/mbVol.total*100) : 0;
-  const badge = isAfter9
-    ? `<div class="fresh-badge ok">✅ Đã cập nhật (sau 09:00)</div>`
-    : `<div class="fresh-badge warn">⏳ Có thể chưa đầy đủ (cập nhật lúc 09:00)</div>`;
-
-  return `<div class="card">
-    <div class="card-hdr">
-      <div class="card-icon" style="background:var(--blue-bg);font-size:20px">📦</div>
-      <div><div class="card-ttl">Sản Lượng Nhập Kho</div>
-      <div class="card-sub">Kho Trung Chuyển HN02 · ${dk.disp}</div></div>
-    </div>
-    ${badge}
-    <div class="vol-lbl">Tổng nhập [Nhập]</div>
-    <div class="vol-total">${fmt(mbVol.total)}</div>
-    <div class="card-footer">Metabase · Cập nhật lúc 09:00 ngày N (dữ liệu N-1)</div>
-    <a href="${mbLink}" target="_blank" class="btn-link">📊 Mở Metabase Dashboard</a>
-  </div>`;
-}
 
 // ═══════════════════════════════════════════════
 // RENDER: SHIFT CARD
@@ -1289,12 +1167,11 @@ function loadSheets() {
     if (!done1 || !done2 || !done3) return;
     sheetsLoading = false;
     const ok = Object.keys(nvData).length > 0 || Object.keys(flData).length > 0 || Object.keys(flDxData).length > 0;
-    const mbTxt = mbVol ? ' · Metabase OK' : '';
     if (err1 || err2 || err3) {
       console.error('[LOAD] Errors fetching sheets:', { err1, err2, err3 });
-      setStatus(`⚠️ Lỗi tải Sheets (Sheet1: ${err1 ? 'Lỗi' : 'OK'}, Sheet2: ${err2 ? 'Lỗi' : 'OK'}, Sheet3: ${err3 ? 'Lỗi' : 'OK'})${mbTxt}`, 'r');
+      setStatus(`⚠️ Lỗi tải Sheets (Sheet1: ${err1 ? 'Lỗi' : 'OK'}, Sheet2: ${err2 ? 'Lỗi' : 'OK'}, Sheet3: ${err3 ? 'Lỗi' : 'OK'})`, 'r');
     } else {
-      setStatus(ok ? `✅ Sheets OK${mbTxt}` : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
+      setStatus(ok ? '✅ Sheets OK' : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
     }
     render();
   };
@@ -1336,256 +1213,11 @@ function loadSheets() {
   });
 }
 
-// ═══════════════════════════════════════════════
-// METABASE
-// ═══════════════════════════════════════════════
-function showMbStatus(msg, cls) {
-  const el = document.getElementById('mb-status');
-  if (!el) return;
-  el.style.display = 'block';
-  el.className = 'mb-status ' + (cls === 'ok' ? 'ok' : 'err');
-  el.textContent = msg;
-}
-
-function doMbLogin() {
-  const token = (document.getElementById('mb-token').value||'').trim();
-  if (!token) { showMbStatus('❌ Vui lòng dán token trước', 'err'); return; }
-  // Validate token format — must be UUID (per security-rules.md: validate all input)
-  if (!isValidToken(token)) { showMbStatus('❌ Token không hợp lệ (phải là UUID dạng xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)', 'err'); return; }
-  const btn = document.getElementById('mb-btn');
-  btn.disabled = true; btn.textContent = '⏳ Đang xác thực...';
-
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', `${MB_PROXY}/api/user/current`, true);
-  xhr.setRequestHeader('X-Metabase-Session', token);
-  xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
-  xhr.timeout = 10000;
-  xhr.onload = () => {
-    btn.disabled = false; btn.textContent = 'Kết nối';
-    if (xhr.status === 200) {
-      mbToken = token;
-      // Store validated token in sessionStorage only (clears on tab close)
-      // Using sessionStorage instead of localStorage prevents long-term persistence — per security-rules.md
-      if (isValidToken(token)) safeSessionStorage.setItem('mb_session', token);
-      showMbStatus('✅ Kết nối thành công! Đang tải sản lượng...', 'ok');
-      loadMbVol();
-    } else {
-      showMbStatus('❌ Token không hợp lệ (HTTP ' + xhr.status + '). Thử lấy token mới.', 'err');
-    }
-  };
-  xhr.onerror = xhr.ontimeout = () => {
-    btn.disabled = false; btn.textContent = 'Kết nối';
-    showMbStatus('❌ Không kết nối được proxy (proxy chưa chạy?). Chạy proxy_server.py trước.', 'err');
-  };
-  xhr.send();
-}
-
-function doSkip() {
-  mbSkipped = true;
-  document.getElementById('mb-panel').style.display = 'none';
-  render();
-}
-
-function loadMbVol() {
-  if (!mbToken) return;
-  const vdIso = isoDate(viewDate);
-
-  setStatus('Đang tải Metabase...', '');
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', `${MB_PROXY}/api/dashboard/${MB_DASH}`, true);
-  xhr.setRequestHeader('X-Metabase-Session', mbToken);
-  xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
-  xhr.timeout = 12000;
-  xhr.onload = () => {
-    if (xhr.status !== 200) {
-      if ((xhr.status === 401 || xhr.status === 403) && mbToken !== 'auto-session') {
-        safeSessionStorage.removeItem('mb_session');
-        mbToken = '';
-        document.getElementById('mb-panel').style.display = 'block';
-        showMbStatus('⚠️ Token hết hạn. Vui lòng kết nối lại.', 'err');
-      }
-      setStatus('⚠️ Sheets OK · Metabase lỗi (' + xhr.status + ')', 'r');
-      return;
-    }
-    try {
-      const dash = JSON.parse(xhr.responseText);
-      const cards = (dash.ordered_cards || dash.dashcards || []).filter(c => c.card_id && c.card);
-      const params = buildParams(dash.parameters || [], vdIso);
-      queryCards(cards, params);
-    } catch(e) {
-      console.error('[MB] Parse error:', e);
-      setStatus('⚠️ Sheets OK · Metabase: lỗi parse', 'r');
-    }
-  };
-  xhr.onerror = xhr.ontimeout = () => setStatus('⚠️ Sheets OK · Metabase timeout', 'r');
-  xhr.send();
-}
-
-function buildParams(dashParams, vdIso) {
-  const find = (...keys) => dashParams.find(p =>
-    keys.some(k => (p.slug||'').toLowerCase().includes(k)||(p.name||'').toLowerCase().includes(k)));
-  const pDate = find('ngày_theo_ca','ngày','ngay','date','day');
-  const pKho  = find('kho','warehouse');
-  const pXN   = find('xuất/nhập','nhập','xuất','nhap','xuat','direction','in_out');
-  if (pXN) mbXNSlug = pXN.slug || 'in_out';
-  console.log('[MB] Params — date:', pDate?.slug, 'kho:', pKho?.slug, 'xn:', pXN?.slug);
-  const params = [];
-  if (pDate) params.push({type:'date/range', value:`${vdIso}~${vdIso}`, id:pDate.id});
-  if (pKho)  params.push({type:'string/=',   value:['Kho Trung Chuyển Hà Nội 02'],  id:pKho.id});
-  if (pXN)   params.push({type:'string/=',   value:['Nhập'],                          id:pXN.id});
-  return params;
-}
 
 // ═══════════════════════════════════════════════
-// METABASE CARDS QUERY
+// REFRESH + AUTO
 // ═══════════════════════════════════════════════
-const cardPriority = nm => {
-  const n = nm.toLowerCase();
-  if (n.includes('khối lượng') || n.includes('(kg)') || n.includes('weight')) return 999;
-  if (n.includes('chi tiết') || n.includes('chiet tiet') || n.includes('detail') || n.includes('raw') || n.includes('danh sách') || n.includes('danh sach') || n.includes('list')) return 999;
-  if (n.includes('số đơn') || n.includes('tổng đơn')) return 0;
-  if (n.includes('sản lượng') && !n.includes('xu hướng')) return 1;
-  if (n.includes('sản lượng')) return 2;
-  if (n.includes('nhập') || n.includes('xuất nhập')) return 3;
-  return 99;
-};
 
-function queryCards(cards, params) {
-  // Loại hẳn "khối lượng" / "kg" / "weight" cards
-
-  const sorted  = [...cards].sort((a,b) => cardPriority(a.card.name||'') - cardPriority(b.card.name||''));
-  const toQuery = sorted.filter(c => cardPriority(c.card.name||'') < 999).slice(0, 10);
-
-  let pending = toQuery.length, results = [];
-  if (!toQuery.length) { showMbStatus('❌ Dashboard không có card phù hợp', 'err'); return; }
-
-  toQuery.forEach(dc => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${MB_PROXY}/api/dashboard/${MB_DASH}/dashcard/${dc.id}/card/${dc.card_id}/query`, true);
-    xhr.setRequestHeader('Content-Type','application/json');
-    xhr.setRequestHeader('X-Metabase-Session', mbToken);
-    xhr.setRequestHeader('ngrok-skip-browser-warning', '1');
-    xhr.timeout = 18000;
-
-    const done = () => { pending--; if (pending === 0) pickBestCard(results); };
-
-    xhr.onload = () => {
-      try {
-        const qd = JSON.parse(xhr.responseText);
-        const rows = qd?.data?.rows || [];
-        if (!rows.length) { done(); return; }
-        const cols = (qd?.data?.cols||[]).map(c=>(c.display_name||c.name||'').toLowerCase());
-
-        // Chọn cột metric: cột số có SUM LỚN NHẤT (tránh nhầm count vs volume), loại trừ cột mã/ID/index
-        const isExcludedCol = c => [
-          'date','ngày','tháng','tuần','time','created','week','month',
-          'id','code','mã','ma','vận đơn','van don','key','no','index','phone','sđt'
-        ].some(k=>c.includes(k));
-        const numericInfo = cols.map((c,i) => ({i, c, sum: rows.reduce((s,r)=>s+(parseFloat(r[i])||0),0)}))
-          .filter(x => !isExcludedCol(x.c) && x.sum > 0);
-        numericInfo.sort((a,b) => b.sum - a.sum);
-        const numCI = numericInfo.length > 0 ? numericInfo[0].i : -1;
-
-        // Cột phân loại hàng: Nhỏ / Công Kênh / Nặng
-        const typCI = cols.findIndex(c =>
-          ['loại hàng','cargo','type','loại','hang type','cat','nhóm','nhom','phân vùng','phan vung','class','phân loại','phan loai'].some(k=>c.includes(k)));
-
-        // Cột hướng đi: xuất/nhập, in/out để lọc chỉ lấy số nhập nếu card chứa cả 2 loại
-        const dirCI = cols.findIndex(c =>
-          ['xuất/nhập','xuat/nhap','in/out','in_out','hướng','huong','direction','type_flow'].some(k=>c.includes(k)));
-
-        let totSl=0, sm=0, ck=0, hv=0;
-        rows.forEach(r => {
-          // Nếu có cột hướng đi, chỉ lấy những dòng có giá trị 'nhập'
-          if (dirCI >= 0) {
-            const dirVal = String(r[dirCI] || '').toLowerCase();
-            if (!dirVal.includes('nhập') && !dirVal.includes('nhap') && !dirVal.includes('in')) {
-              return; // bỏ qua các dòng không phải là Nhập
-            }
-          }
-
-          const v = parseFloat(r[numCI<0?0:numCI])||0;
-          totSl += v;
-          if (typCI>=0) {
-            const t = String(r[typCI]||'').toLowerCase();
-            if      (t.includes('nhỏ')||t.includes('nho')||t.includes('normal')||t.includes('small')||t.includes('1.9t')||t.includes('500kg')) sm+=v;
-            else if (t.includes('công kênh')||t.includes('cong kenh')||t.includes('cồng')||t.includes('bulky')||t.includes('oversize')||t.includes('ck')) ck+=v;
-            else if (t.includes('nặng')||t.includes('nang')||t.includes('heavy')||t.includes('freight')) hv+=v;
-            else sm+=v;
-          }
-        });
-        console.log(`[MB] "${dc.card.name}": rows=${rows.length} totSl=${Math.round(totSl)} numCI=${numCI}(${cols[numCI]}) typCI=${typCI}(${cols[typCI]}) dirCI=${dirCI} sm=${Math.round(sm)} ck=${Math.round(ck)} hv=${Math.round(hv)}`);
-        results.push({name:dc.card.name, totSl, sm, ck, hv, numRows:rows.length});
-      } catch(e) { console.log('[MB] parse err:', dc.card.name, e.message); }
-      done();
-    };
-    xhr.onerror = xhr.ontimeout = () => { console.log(`[MB] "${dc.card?.name}" timeout/err`); done(); };
-    xhr.send(JSON.stringify({parameters:params}));
-  });
-}
-
-function pickBestCard(results) {
-  const valid = results.filter(r => r.totSl > 0);
-  console.log('[MB] Results:', valid.map(r=>`"${r.name}": ${Math.round(r.totSl)} (${r.numRows}r)`));
-
-  if (!results.length) {
-    showMbStatus('❌ Không thể tải dữ liệu từ Metabase. Hãy kiểm tra proxy hoặc token.', 'err');
-    document.getElementById('mb-panel').style.display = 'block';
-    return;
-  }
-
-  if (!valid.length) {
-    showMbStatus('⚠️ Kết nối thành công nhưng sản lượng bằng 0.', 'err');
-    document.getElementById('mb-panel').style.display = 'block';
-    return;
-  }
-
-  // 1. KPI cards (1-5 rows, giá trị hợp lý 500-10M) → daily aggregate count
-  const kpiCards  = valid.filter(r => r.numRows <= 5  && r.totSl >= 500 && r.totSl <= 10_000_000);
-  // 2. Sản lượng charts (không xu hướng)
-  const slCharts  = valid.filter(r => r.numRows > 5   && !((r.name||'').toLowerCase().includes('xu hướng')) && r.totSl >= 500);
-  // 3. Xu hướng trend charts (fallback)
-  const trendCards= valid.filter(r => (r.name||'').toLowerCase().includes('xu hướng'));
-
-  const hasSplitData = r => (r.sm > 0 || r.ck > 0 || r.hv > 0);
-
-  let pool;
-  // Ưu tiên cao nhất cho card có dữ liệu phân tách loại hàng
-  const splitPool = valid.filter(hasSplitData);
-  if (splitPool.length) {
-    pool = splitPool.sort((a,b) => {
-      const pA = cardPriority(a.name || '');
-      const pB = cardPriority(b.name || '');
-      if (pA !== pB) return pA - pB;
-      return b.totSl - a.totSl;
-    });
-    console.log('[MB] Chọn card có phân loại hàng:', pool[0].name);
-  } else if (kpiCards.length) {
-    pool = kpiCards.sort((a,b)=>b.totSl-a.totSl);
-    console.log('[MB] Chọn KPI cards');
-  } else if (slCharts.length) {
-    pool = slCharts.sort((a,b)=>b.totSl-a.totSl);
-    console.log('[MB] Chọn sl charts');
-  } else if (trendCards.length) {
-    pool = trendCards.sort((a,b)=>b.totSl-a.totSl);
-    console.log('[MB] Fallback xu hướng');
-  } else {
-    pool = valid.sort((a,b)=>b.totSl-a.totSl);
-  }
-
-  const best = pool[0];
-  mbVol = {
-    total:    Math.round(best.totSl),
-    sm:       Math.round(best.sm),
-    ck:       Math.round(best.ck),
-    hv:       Math.round(best.hv),
-    cardName: best.name,
-  };
-  document.getElementById('mb-panel').style.display = 'none';
-  const mbTxt = Object.keys(nvData).length > 0 ? '✅ Sheets OK · Metabase OK' : '✅ Metabase OK';
-  setStatus(`${mbTxt} (${best.name})`, 'g');
-  render();
-}
 
 // ═══════════════════════════════════════════════
 // REFRESH + AUTO
@@ -1595,14 +1227,12 @@ function doRefresh() {
   btn.disabled = true; btn.textContent = '⏳';
   sheetsLoading = false;
   loadSheets();
-  if (mbToken) loadMbVol();
   setTimeout(() => { btn.disabled = false; btn.textContent = '🔄 Làm mới'; }, 5000);
 }
 
 setInterval(() => {
   sheetsLoading = false;
   loadSheets();
-  if (mbToken) loadMbVol();
 }, 5 * 60 * 1000);
 
 let flChartInstance = null;
@@ -1754,49 +1384,8 @@ function renderFLTrendChart(vd) {
 // INIT
 // ═══════════════════════════════════════════════
 (function init() {
-  // SECURITY: Token is NEVER accepted from URL parameters.
-  // Passing secrets in URLs leaks them to server logs, browser history,
-  // and Referer headers. — per security-rules.md "Secrets" section.
-
-  // Use sessionStorage (not localStorage) to avoid long-term token persistence
-  const saved = safeSessionStorage.getItem('mb_session');
-
   render();
   loadSheets();
-
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  
-  if (isLocal) {
-    // Nếu chạy local có proxy server hỗ trợ tự động đăng nhập (Auto-login), 
-    // ta bỏ qua hoàn toàn hộp thoại nhập token và gọi thẳng API lấy số liệu.
-    mbToken = 'auto-session'; 
-    document.getElementById('mb-panel').style.display = 'none';
-    loadMbVol();
-  } else if (saved) {
-    // Validate token format before using — per security-rules.md
-    if (!isValidToken(saved)) {
-      safeLocalStorage.removeItem('mb_session');
-      console.warn('[MB] Removed invalid token from localStorage');
-      return;
-    }
-    const vxhr = new XMLHttpRequest();
-    vxhr.open('GET', `${MB_PROXY}/api/user/current`, true);
-    vxhr.setRequestHeader('X-Metabase-Session', saved);
-    vxhr.setRequestHeader('ngrok-skip-browser-warning', '1');
-    vxhr.timeout = 8000;
-    vxhr.onload = () => {
-      if (vxhr.status === 200) {
-        mbToken = saved;
-        loadMbVol();
-      } else {
-        safeSessionStorage.removeItem('mb_session');
-        mbToken = '';
-        console.log('[MB] Saved token expired');
-      }
-    };
-    vxhr.onerror = vxhr.ontimeout = () => console.log('[MB] Proxy offline, showing panel');
-    vxhr.send();
-  }
 })();
 </script>
 
