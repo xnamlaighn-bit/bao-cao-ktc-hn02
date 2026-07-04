@@ -611,10 +611,17 @@ function escHtml(str) {
 
 // ═══════════════════════════════════════════════
 // CONFIG
+// C2 FIX: Sheet IDs removed from frontend — stored only in Cloudflare Worker
+// C1 FIX: JWT verification done server-side via Worker /verify-token
 // ═══════════════════════════════════════════════
-const SHEET1 = 'https://docs.google.com/spreadsheets/d/1BKqLa9uB8JJ3em0bY6R1QqkZDPYdHYWfnT5crXVLbRc/export?format=csv&gid=1878142111';
-const SHEET2 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=1455372314';
-const SHEET3 = 'https://docs.google.com/spreadsheets/d/1jfvNucUpdvqJHZqW1Jl9t53DEDzvPiTtQBRAoJpRMhY/export?format=csv&gid=2127051141';
+// ⚠️ IMPORTANT: Replace this URL with your actual deployed Worker URL
+// after deploying worker.js to Cloudflare Workers (Dashboard → Workers → Create Worker)
+const WORKER_URL = 'https://ktc-hn02-proxy.namlxghn.workers.dev';
+
+// Sheet aliases (real IDs are hidden in Worker — never sent to browser)
+const SHEET_NV_GID  = '1878142111';  // gid for nhân viên sheet
+const SHEET_FL_GID  = '1455372314';  // gid for FL HN02 sheet
+const SHEET_FDX_GID = '2127051141';  // gid for FL DX sheet
 
 // ═══════════════════════════════════════════════
 // STATE
@@ -1001,59 +1008,48 @@ function renderShiftCard(dk, ca, icon) {
 }
 
 // ═══════════════════════════════════════════════
-// FETCH CSV — direct (CORS=* on /export) → Render gs-proxy (controlled)
-// Google Sheets /export returns Access-Control-Allow-Origin: *
-// so browser can fetch directly without any proxy!
-// NOTE: allorigins.win removed — per security-rules.md (uncontrolled 3rd party)
+// FETCH CSV — via Cloudflare Worker (C2 FIX)
+// Sheet IDs are hidden in Worker; browser only sends sheet alias + session token.
+// Worker verifies session before fetching CSV from Google Sheets.
 // ═══════════════════════════════════════════════
-// CORS proxy (fallback khi Google Sheets chặn direct fetch)
-// corsproxy.io là proxy mở được kiểm soát, an toàn hơn allorigins.win
-const GS_CORS_PROXY = 'https://corsproxy.io/?' ;
 
-function fetchCSV(url, cb) {
-  // Thử tải trực tiếp trước (Google Sheets export có CORS header cho public sheets),
-  // nếu lỗi (CORS hoặc network) thì fallback sang corsproxy.io
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const localProxy = '/gs-proxy?url=' + encodeURIComponent(url);
-
-  const queue = isLocal
-    ? [{ url: localProxy,                timeout: 10000 },
-       { url: url,                       timeout: 15000 },
-       { url: GS_CORS_PROXY + encodeURIComponent(url), timeout: 20000 }]
-    : [{ url: url,                       timeout: 15000 },   // direct — nhanh nhất
-       { url: GS_CORS_PROXY + encodeURIComponent(url), timeout: 20000 }]; // cors proxy fallback
-
-  function tryNext(remaining) {
-    if (!remaining.length) { cb(new Error('Không tải được dữ liệu')); return; }
-    const { url: target, timeout } = remaining[0];
-    const rest = remaining.slice(1);
-
-    console.log('[FETCH] Thử tải từ:', target.slice(0, 100));
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', target, true);
-    xhr.timeout = timeout;
-    xhr.onload = () => {
-      const txt = xhr.responseText || '';
-      console.log(`[FETCH] Phản hồi từ ${target.slice(0, 50)}: Status = ${xhr.status}, Length = ${txt.length}`);
-      if (xhr.status === 200 && txt.length > 50 && !txt.trimStart().startsWith('<')) {
-        cb(null, txt);
-      } else {
-        console.warn('[FETCH] Thất bại (status != 200 hoặc data không phải CSV), thử proxy tiếp theo. Preview:', txt.slice(0, 100));
-        tryNext(rest);
-      }
-    };
-    xhr.onerror = (e) => {
-      console.warn('[FETCH] Lỗi kết nối (Network Error) từ:', target.slice(0, 100), e);
-      tryNext(rest);
-    };
-    xhr.ontimeout = () => {
-      console.warn('[FETCH] Hết thời gian chờ (Timeout) từ:', target.slice(0, 100));
-      tryNext(rest);
-    };
-    xhr.send();
+/**
+ * Fetch CSV from Cloudflare Worker /gs-proxy endpoint.
+ * @param {string} alias  - Sheet alias: 'nv', 'fl'
+ * @param {string} gid    - Sheet gid (tab ID)
+ * @param {function} cb   - Callback(err, csvText)
+ */
+function fetchCSVFromWorker(alias, gid, cb) {
+  const session = safeSessionStorage.getItem('ghn_worker_session');
+  if (!session) {
+    cb(new Error('No session — please log in'));
+    return;
   }
 
-  tryNext(queue);
+  const workerUrl = `${WORKER_URL}/gs-proxy?sheet=${encodeURIComponent(alias)}&gid=${encodeURIComponent(gid)}`;
+  console.log('[FETCH] Gọi Worker gs-proxy:', alias, gid);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', workerUrl, true);
+  xhr.timeout = 20000;
+  xhr.setRequestHeader('Authorization', 'Bearer ' + session);
+  xhr.onload = () => {
+    const txt = xhr.responseText || '';
+    if (xhr.status === 200 && txt.length > 10 && !txt.trimStart().startsWith('{')) {
+      console.log(`[FETCH] Worker gs-proxy OK — alias=${alias}, length=${txt.length}`);
+      cb(null, txt);
+    } else if (xhr.status === 401) {
+      console.warn('[FETCH] Session hết hạn — đăng xuất.');
+      doSignOut();
+      cb(new Error('Session expired'));
+    } else {
+      console.warn('[FETCH] Worker gs-proxy lỗi:', xhr.status, txt.slice(0, 100));
+      cb(new Error(`Worker error ${xhr.status}`));
+    }
+  };
+  xhr.onerror = () => { console.warn('[FETCH] Network error khi gọi Worker'); cb(new Error('Network error')); };
+  xhr.ontimeout = () => { console.warn('[FETCH] Timeout khi gọi Worker'); cb(new Error('Timeout')); };
+  xhr.send();
 }
 
 // ═══════════════════════════════════════════════
@@ -1154,10 +1150,11 @@ function parseSheet3(csv) {
 // ═══════════════════════════════════════════════
 // LOAD SHEETS
 // ═══════════════════════════════════════════════
+// C2 FIX: loadSheets now uses sheet aliases via Worker — no Sheet IDs in frontend
 function loadSheets() {
   if (sheetsLoading) return;
   sheetsLoading = true;
-  setStatus('Đang tải Google Sheets...', '');
+  setStatus('Đang tải dữ liệu qua Worker...', '');
   let done1=false, done2=false, done3=false;
   let err1=null, err2=null, err3=null;
 
@@ -1167,44 +1164,44 @@ function loadSheets() {
     const ok = Object.keys(nvData).length > 0 || Object.keys(flData).length > 0 || Object.keys(flDxData).length > 0;
     if (err1 || err2 || err3) {
       console.error('[LOAD] Errors fetching sheets:', { err1, err2, err3 });
-      setStatus(`⚠️ Lỗi tải Sheets (Sheet1: ${err1 ? 'Lỗi' : 'OK'}, Sheet2: ${err2 ? 'Lỗi' : 'OK'}, Sheet3: ${err3 ? 'Lỗi' : 'OK'})`, 'r');
+      setStatus(`⚠️ Lỗi tải Sheets (NV: ${err1 ? 'Lỗi' : 'OK'}, FL-HN02: ${err2 ? 'Lỗi' : 'OK'}, FL-DX: ${err3 ? 'Lỗi' : 'OK'})`, 'r');
     } else {
-      setStatus(ok ? '✅ Sheets OK' : '⚠️ Sheets: Không có dữ liệu', ok ? 'g' : 'r');
+      setStatus(ok ? '✅ Dữ liệu OK' : '⚠️ Không có dữ liệu', ok ? 'g' : 'r');
     }
     render();
   };
 
-  console.log('[LOAD] Bắt đầu tải SHEET1...');
-  fetchCSV(SHEET1, (err, txt) => {
+  console.log('[LOAD] Bắt đầu tải Sheet NV (alias=nv)...');
+  fetchCSVFromWorker('nv', SHEET_NV_GID, (err, txt) => {
     if (err) {
       err1 = err;
-      console.error('[LOAD] Lỗi tải SHEET1:', err);
+      console.error('[LOAD] Lỗi tải NV sheet:', err);
     } else {
-      console.log('[LOAD] Đã tải SHEET1 thành công, length:', txt.length);
+      console.log('[LOAD] Đã tải NV sheet thành công, length:', txt.length);
       nvData = parseSheet1(txt);
     }
     done1 = true; tryRender();
   });
 
-  console.log('[LOAD] Bắt đầu tải SHEET2...');
-  fetchCSV(SHEET2, (err, txt) => {
+  console.log('[LOAD] Bắt đầu tải Sheet FL-HN02 (alias=fl, gid FL)...');
+  fetchCSVFromWorker('fl', SHEET_FL_GID, (err, txt) => {
     if (err) {
       err2 = err;
-      console.error('[LOAD] Lỗi tải SHEET2:', err);
+      console.error('[LOAD] Lỗi tải FL-HN02 sheet:', err);
     } else {
-      console.log('[LOAD] Đã tải SHEET2 thành công, length:', txt.length);
+      console.log('[LOAD] Đã tải FL-HN02 sheet thành công, length:', txt.length);
       flData = parseSheet2(txt);
     }
     done2 = true; tryRender();
   });
 
-  console.log('[LOAD] Bắt đầu tải SHEET3...');
-  fetchCSV(SHEET3, (err, txt) => {
+  console.log('[LOAD] Bắt đầu tải Sheet FL-DX (alias=fl, gid DX)...');
+  fetchCSVFromWorker('fl', SHEET_FDX_GID, (err, txt) => {
     if (err) {
       err3 = err;
-      console.error('[LOAD] Lỗi tải SHEET3:', err);
+      console.error('[LOAD] Lỗi tải FL-DX sheet:', err);
     } else {
-      console.log('[LOAD] Đã tải SHEET3 thành công, length:', txt.length);
+      console.log('[LOAD] Đã tải FL-DX sheet thành công, length:', txt.length);
       flDxData = parseSheet3(txt);
     }
     done3 = true; tryRender();
@@ -1446,61 +1443,63 @@ function showDashboard(payload) {
 
 // ─────────────────────────────────────────────────
 // Handle credential response from Google
+// C1 FIX: JWT is sent to Worker for real RSA-SHA256 signature verification
+// via Google JWKS — client-side bypass is no longer possible
 // ─────────────────────────────────────────────────
 function handleCredentialResponse(response) {
-  const payload = parseJwt(response.credential);
+  const idToken = response.credential;
+
+  // Quick client-side pre-check (fast-fail only — NOT the real security gate)
+  const payload = parseJwt(idToken);
   if (!payload) {
     showAuthError('❌ Không thể đọc thông tin từ Google. Vui lòng thử lại.');
     return;
   }
 
-  // — Additional JWT payload validation (C1 mitigation) —
-  // Note: This does NOT verify the JWT cryptographic signature (that requires server-side).
-  // These checks prevent trivially fake payloads (e.g. attacker-crafted base64 JWTs).
-
-  // 1. Verify audience (aud) matches our Client ID — prevents tokens from other apps
-  const audValid = Array.isArray(payload.aud)
-    ? payload.aud.includes(GOOGLE_CLIENT_ID)
-    : payload.aud === GOOGLE_CLIENT_ID;
-  if (!audValid) {
-    showAuthError('❌ Xác thực thất bại (invalid audience). Vui lòng thử lại.');
-    console.warn('[AUTH] JWT aud mismatch:', payload.aud);
-    return;
-  }
-
-  // 2. Verify issuer (iss) is Google
-  const validIssuers = ['https://accounts.google.com', 'accounts.google.com'];
-  if (!validIssuers.includes(payload.iss)) {
-    showAuthError('❌ Xác thực thất bại (invalid issuer). Vui lòng thử lại.');
-    console.warn('[AUTH] JWT iss mismatch:', payload.iss);
-    return;
-  }
-
-  // 3. Verify token is not expired
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (!payload.exp || payload.exp <= nowSec) {
-    showAuthError('❌ Token đã hết hạn. Vui lòng đăng nhập lại.');
-    console.warn('[AUTH] JWT expired at:', payload.exp, '| now:', nowSec);
-    return;
-  }
-
   const email = payload.email || '';
-
-  // Enforce @ghn.vn domain — per security-rules.md "Authentication & Authorization"
   if (!email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN)) {
     showAuthError(`❌ Email "${escHtml(email)}" không thuộc miền @${ALLOWED_DOMAIN}.\nChỉ tài khoản GHN mới được truy cập.`);
-    // Sign out from Google to clear the session
     if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
     return;
   }
 
-  // Valid — store session info (sessionStorage: clears on tab close)
-  safeSessionStorage.setItem('ghn_auth', JSON.stringify({
-    email, name: payload.name, picture: payload.picture,
-    exp: payload.exp
-  }));
+  // ── C1 FIX: Server-side JWT verification via Cloudflare Worker ────────────
+  // Worker fetches Google JWKS and verifies RSA-SHA256 signature — cannot be forged
+  showAuthError('');
+  const btn = document.getElementById('google-signin-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xác thực...'; }
 
-  showDashboard(payload);
+  fetch(WORKER_URL + '/verify-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_token: idToken }),
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Đăng nhập với Google`; }
+
+    if (!data.ok) {
+      console.warn('[AUTH] Worker verify failed:', data.error);
+      showAuthError('❌ Xác thực thất bại: ' + escHtml(data.error || 'Unknown error'));
+      return;
+    }
+
+    // Worker issued a session token (HMAC-signed, 8h TTL)
+    safeSessionStorage.setItem('ghn_worker_session', data.session);
+    safeSessionStorage.setItem('ghn_auth', JSON.stringify({
+      email: data.email, name: data.name, picture: data.picture,
+      exp: data.exp
+    }));
+
+    console.log('[AUTH] Server-side JWT verify OK — email:', data.email);
+    showDashboard({ email: data.email, name: data.name, picture: data.picture,
+                    given_name: data.name ? data.name.split(' ')[0] : '' });
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Đăng nhập với Google`; }
+    console.error('[AUTH] Worker verify-token network error:', err);
+    showAuthError('❌ Không kết nối được với server xác thực. Kiểm tra mạng và thử lại.');
+  });
 }
 
 function showAuthError(msg) {
@@ -1574,11 +1573,14 @@ function checkRedirectResult() {
 // Sign Out
 // ───────────────────────────────────────────────
 function doSignOut() {
+  // Clear both ghn session and Worker session token
   safeSessionStorage.removeItem('ghn_auth');
+  safeSessionStorage.removeItem('ghn_worker_session');
   document.getElementById('app-wrap').style.display = 'none';
   document.getElementById('auth-overlay').classList.remove('hidden');
   document.getElementById('auth-error').classList.remove('show');
   document.getElementById('user-pill').style.display = 'none';
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
   console.log('[AUTH] Đã đăng xuất');
 }
 
@@ -1591,7 +1593,8 @@ function initGoogleAuth() {
 
   // 2. Check existing valid session in sessionStorage
   const saved = safeSessionStorage.getItem('ghn_auth');
-  if (saved) {
+  const savedWorkerSession = safeSessionStorage.getItem('ghn_worker_session');
+  if (saved && savedWorkerSession) {
     try {
       const info = JSON.parse(saved);
       const nowSec = Math.floor(Date.now() / 1000);
@@ -1601,6 +1604,7 @@ function initGoogleAuth() {
       }
     } catch { /* invalid — fall through */ }
     safeSessionStorage.removeItem('ghn_auth');
+    safeSessionStorage.removeItem('ghn_worker_session');
   }
 
   // 3. No session — show login overlay (already visible by default)
