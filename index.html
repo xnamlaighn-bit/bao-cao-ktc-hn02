@@ -1463,8 +1463,11 @@ function handleCredentialResponse(response) {
     return;
   }
 
-  // ── C1 FIX: Server-side JWT verification via Cloudflare Worker ────────────
-  // Worker fetches Google JWKS and verifies RSA-SHA256 signature — cannot be forged
+  doServerSideVerify(idToken);
+}
+
+// ── C1 FIX: Server-side JWT verification via Cloudflare Worker ────────────
+function doServerSideVerify(idToken) {
   showAuthError('');
   const btn = document.getElementById('google-signin-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xác thực...'; }
@@ -1561,11 +1564,8 @@ function checkRedirectResult() {
     return true;
   }
 
-  // Save session and show dashboard
-  safeSessionStorage.setItem('ghn_auth', JSON.stringify({
-    email, name: payload.name, picture: payload.picture, exp: payload.exp
-  }));
-  showDashboard(payload);
+  // ── C1 FIX: Verify with Worker
+  doServerSideVerify(idToken);
   return true;
 }
 
