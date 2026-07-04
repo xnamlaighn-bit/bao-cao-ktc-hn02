@@ -15,7 +15,7 @@
              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
              font-src https://fonts.gstatic.com;
              img-src 'self' https://cdn.hstatic.net https://lh3.googleusercontent.com data:;
-             connect-src 'self' https://docs.google.com https://accounts.google.com;
+             connect-src 'self' https://docs.google.com https://spreadsheets.google.com https://doc-0.googleusercontent.com https://accounts.google.com https://corsproxy.io;
              frame-src https://accounts.google.com;">
   <!-- Prevent MIME-type sniffing -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -1006,24 +1006,22 @@ function renderShiftCard(dk, ca, icon) {
 // so browser can fetch directly without any proxy!
 // NOTE: allorigins.win removed — per security-rules.md (uncontrolled 3rd party)
 // ═══════════════════════════════════════════════
-const GS_PROXY_RENDER = 'https://bao-cao-ktc-hn02.onrender.com/gs-proxy?url=';
+// CORS proxy (fallback khi Google Sheets chặn direct fetch)
+// corsproxy.io là proxy mở được kiểm soát, an toàn hơn allorigins.win
+const GS_CORS_PROXY = 'https://corsproxy.io/?' ;
 
 function fetchCSV(url, cb) {
-  const renderProxy = GS_PROXY_RENDER + encodeURIComponent(url);
-
+  // Thử tải trực tiếp trước (Google Sheets export có CORS header cho public sheets),
+  // nếu lỗi (CORS hoặc network) thì fallback sang corsproxy.io
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const localProxy = '/gs-proxy?url=' + encodeURIComponent(url);
 
-  // Try direct first (CORS=* on Google export URLs), then Render proxy fallback.
-  // NOTE: allorigins.win removed — per security-rules.md:
-  //   "Never make server-side HTTP requests to user-supplied URLs without
-  //    validating against an explicit allowlist" — we cannot control allorigins.win.
   const queue = isLocal
-    ? [{ url: localProxy,  timeout: 10000 },
-       { url: url,         timeout: 12000 },
-       { url: renderProxy, timeout: 55000 }]
-    : [{ url: url,         timeout: 12000 },   // direct fetch — fastest!
-       { url: renderProxy, timeout: 55000 }];  // Render proxy (controlled) — fallback
+    ? [{ url: localProxy,                timeout: 10000 },
+       { url: url,                       timeout: 15000 },
+       { url: GS_CORS_PROXY + encodeURIComponent(url), timeout: 20000 }]
+    : [{ url: url,                       timeout: 15000 },   // direct — nhanh nhất
+       { url: GS_CORS_PROXY + encodeURIComponent(url), timeout: 20000 }]; // cors proxy fallback
 
   function tryNext(remaining) {
     if (!remaining.length) { cb(new Error('Không tải được dữ liệu')); return; }
